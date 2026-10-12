@@ -9,7 +9,7 @@
 <style>
 :root{
   --bg:#000;--card:rgba(255,255,255,.045);--line:rgba(255,255,255,.09);
-  --txt:#fff;--dim:#9b8aa6;--pink:#ff2bd6;--pink2:#a100ff;--grad:linear-gradient(135deg,#ff2bd6,#a100ff);
+  --txt:#fff;--dim:#a39a86;--pink:#ffb800;--pink2:#ff8a00;--grad:linear-gradient(135deg,#ffd84d,#ff9f0a);--on:#2b1a00;
   --r:22px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
@@ -20,17 +20,17 @@ svg{display:block}
 
 /* ===== рамка смартфона: на любом экране приложение = размер телефона ===== */
 body{display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 50% 0,#1a0620 0,#000 60%)}
+  background:radial-gradient(ellipse at 50% 0,#1c1400 0,#000 60%)}
 #app{position:relative;display:flex;flex-direction:column;overflow:hidden;
   width:100%;height:100%;max-width:430px;background:#000;isolation:isolate}
 @media (min-width:600px){
   #app{height:min(900px,96vh);border-radius:44px;border:1px solid var(--line);
-    box-shadow:0 0 0 8px #0b0b0d,0 0 90px rgba(255,43,214,.28),0 40px 100px rgba(0,0,0,.8)}
+    box-shadow:0 0 0 8px #0b0b0d,0 0 90px rgba(255,184,0,.28),0 40px 100px rgba(0,0,0,.8)}
 }
 /* фоновое свечение */
 #app:before,#app:after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(70px);pointer-events:none}
-#app:before{width:320px;height:320px;left:-90px;top:-60px;background:rgba(255,43,214,.32);animation:drift 9s ease-in-out infinite alternate}
-#app:after{width:300px;height:300px;right:-100px;bottom:60px;background:rgba(161,0,255,.28);animation:drift 11s ease-in-out infinite alternate-reverse}
+#app:before{width:320px;height:320px;left:-90px;top:-60px;background:rgba(255,184,0,.32);animation:drift 9s ease-in-out infinite alternate}
+#app:after{width:300px;height:300px;right:-100px;bottom:60px;background:rgba(255,138,0,.28);animation:drift 11s ease-in-out infinite alternate-reverse}
 @keyframes drift{to{transform:translate(40px,50px) scale(1.15)}}
 
 /* ===== шапка ===== */
@@ -39,14 +39,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;
 .bal{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;
   background:var(--card);border:1px solid var(--line);backdrop-filter:blur(14px)}
 .bal .ic{width:36px;height:36px;border-radius:50%;background:var(--grad);display:grid;place-items:center;
-  box-shadow:0 0 18px rgba(255,43,214,.6)}
+  box-shadow:0 0 18px rgba(255,184,0,.6)}
 .bal b{display:block;font-size:19px;font-weight:800;line-height:1.1;letter-spacing:-.3px}
 .bal small{display:block;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
-.invite{display:flex;align-items:center;gap:7px;border:0;color:#fff;font-weight:700;font-size:13px;
-  padding:11px 15px;border-radius:999px;background:var(--grad);box-shadow:0 6px 24px rgba(255,43,214,.45);
+.invite{display:flex;align-items:center;gap:7px;border:0;color:var(--on);font-weight:700;font-size:13px;
+  padding:11px 15px;border-radius:999px;background:var(--grad);box-shadow:0 6px 24px rgba(255,184,0,.45);
   transition:transform .15s}
 .bump{animation:bump .55s}
-@keyframes bump{35%{transform:scale(1.22);color:#ff7be9}}
+@keyframes bump{35%{transform:scale(1.22);color:#ffe27a}}
 @keyframes down{from{opacity:0;transform:translateY(-16px)}}
 @keyframes up{from{opacity:0;transform:translateY(22px)}}
 
@@ -59,13 +59,13 @@ main::-webkit-scrollbar{display:none}
 
 /* главная кнопка с кольцами */
 .orb{position:relative;width:230px;height:230px;margin:6px 0 10px;display:grid;place-items:center}
-.orb i{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,43,214,.45);animation:ring 3.2s linear infinite}
+.orb i{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,184,0,.45);animation:ring 3.2s linear infinite}
 .orb i:nth-child(2){animation-delay:1.06s}.orb i:nth-child(3){animation-delay:2.12s}
 @keyframes ring{from{transform:scale(.62);opacity:.9}to{transform:scale(1.18);opacity:0}}
-.claim{position:relative;width:170px;height:170px;border-radius:50%;border:0;color:#fff;
+.claim{position:relative;width:170px;height:170px;border-radius:50%;border:0;color:var(--on);
   background:var(--grad);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   font-size:19px;font-weight:800;letter-spacing:-.2px;
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 0 60px rgba(255,43,214,.65),0 20px 50px rgba(161,0,255,.45);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 0 60px rgba(255,184,0,.65),0 20px 50px rgba(255,138,0,.45);
   transition:transform .15s,filter .3s;animation:breath 2.6s ease-in-out infinite}
 @keyframes breath{50%{transform:scale(1.045)}}
 .claim:active{transform:scale(.93);animation:none}
@@ -86,10 +86,10 @@ main::-webkit-scrollbar{display:none}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;
   backdrop-filter:blur(16px);transition:transform .15s,border-color .25s,box-shadow .25s;animation:up .5s both}
 .card:nth-child(2){animation-delay:.07s}.card:nth-child(3){animation-delay:.14s}
-.card:active{transform:scale(.975);border-color:rgba(255,43,214,.6);box-shadow:0 0 28px rgba(255,43,214,.25)}
+.card:active{transform:scale(.975);border-color:rgba(255,184,0,.6);box-shadow:0 0 28px rgba(255,184,0,.25)}
 .me{display:flex;align-items:center;gap:14px}
 .ava{width:56px;height:56px;border-radius:50%;background:var(--grad);display:grid;place-items:center;
-  font-size:24px;font-weight:800;box-shadow:0 0 24px rgba(255,43,214,.5);overflow:hidden}
+  font-size:24px;font-weight:800;box-shadow:0 0 24px rgba(255,184,0,.5);overflow:hidden}
 .ava img{width:100%;height:100%;object-fit:cover}
 .me b{font-size:18px;display:block}.me span{color:var(--dim);font-size:13px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -102,8 +102,8 @@ main::-webkit-scrollbar{display:none}
 .bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--grad);box-shadow:0 0 14px var(--pink);transition:width .8s cubic-bezier(.2,.8,.2,1)}
 .lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
 .lbl b{color:var(--txt)}
-.wd{width:100%;border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:800;color:#fff;
-  background:var(--grad);box-shadow:0 8px 28px rgba(255,43,214,.4);transition:transform .15s}
+.wd{width:100%;border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:800;color:var(--on);
+  background:var(--grad);box-shadow:0 8px 28px rgba(255,184,0,.4);transition:transform .15s}
 .wd:disabled{background:rgba(255,255,255,.06);color:var(--dim);box-shadow:none}
 .invite:active,.wd:active:not(:disabled),.chip:active{transform:scale(.94)}
 .fl{margin-top:2px}.fl .row{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--line);font-size:14px;font-weight:600}.fl .row:first-of-type{border-top:0}.fl .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px}.fl .mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}.fl .mk.y{background:rgba(52,211,153,.16);color:#34d399}.fl .mk.n{background:rgba(255,255,255,.07);color:#8a8a99}.fl .empty{color:var(--dim);font-size:13px;text-align:center;padding:10px 0 2px}.fl h4{margin:0 0 6px;font-size:14px}
@@ -114,34 +114,34 @@ nav{display:flex;gap:6px;margin:0 14px calc(12px + env(safe-area-inset-bottom));
   background:rgba(255,255,255,.06);border:1px solid var(--line);backdrop-filter:blur(20px)}
 nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;
   color:var(--dim);padding:9px 0;border-radius:20px;font-size:11.5px;font-weight:600;transition:.25s}
-nav button.on{color:#fff;background:var(--grad);box-shadow:0 6px 22px rgba(255,43,214,.45)}
+nav button.on{color:var(--on);background:var(--grad);box-shadow:0 6px 22px rgba(255,184,0,.45)}
 nav button:active{transform:scale(.93)}
 
 #toast{position:absolute;left:50%;top:84px;z-index:9;transform:translate(-50%,-16px) scale(.9);
-  background:var(--grad);color:#fff;font-weight:700;padding:11px 20px;border-radius:16px;font-size:14px;
-  opacity:0;pointer-events:none;transition:.3s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 36px rgba(255,43,214,.55);white-space:nowrap}
+  background:var(--grad);color:var(--on);font-weight:700;padding:11px 20px;border-radius:16px;font-size:14px;
+  opacity:0;pointer-events:none;transition:.3s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 36px rgba(255,184,0,.55);white-space:nowrap}
 #toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 
 /* конфетти */
-.fx{position:absolute;pointer-events:none;width:18px;height:18px;color:#e040fb;z-index:8;animation:fx 1s ease-out forwards}
+.fx{position:absolute;pointer-events:none;width:18px;height:18px;color:#ffc83d;z-index:8;animation:fx 1s ease-out forwards}
 @keyframes fx{to{transform:translate(var(--x),var(--y)) scale(.4) rotate(220deg);opacity:0}}
 
 /* вне Telegram */
 #out{display:none;position:absolute;inset:0;z-index:20;background:#000d;backdrop-filter:blur(10px);
   flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px}
 #out.on{display:flex}
-#out a{display:inline-block;text-decoration:none;color:#fff;font-weight:800;padding:15px 26px;border-radius:16px;background:var(--grad);box-shadow:0 8px 28px rgba(255,43,214,.5)}
+#out a{display:inline-block;text-decoration:none;color:var(--on);font-weight:800;padding:15px 26px;border-radius:16px;background:var(--grad);box-shadow:0 8px 28px rgba(255,184,0,.5)}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
     <div class="bal">
-      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></div>
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#2b1a00"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></div>
       <div><b id="bal">0</b><small>баланс звёзд</small></div>
     </div>
     <button class="invite" id="inv">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
       Пригласить
     </button>
   </header>
@@ -150,7 +150,7 @@ nav button:active{transform:scale(.93)}
     <section class="tab on" id="home">
       <div class="orb" id="orb"><i></i><i></i><i></i>
         <button class="claim" id="claim">
-          <svg width="46" height="46" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="#2b1a00"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>
           <span id="claimTxt">Я не бот!</span>
         </button>
       </div>
@@ -195,7 +195,7 @@ nav button:active{transform:scale(.93)}
 
   <div id="toast"></div>
   <div id="out">
-    <div style="width:54px;height:54px;color:#e040fb">
+    <div style="width:54px;height:54px;color:#ffc83d">
     <div class="title">Открой в Telegram</div>
     <div class="sub">Звёзды начисляются только внутри Telegram — там мы убеждаемся, что ты не бот.</div>
     <a href="https://t.me/freestars5bot" target="_blank">Открыть @freestars5bot</a>
