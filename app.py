@@ -18,7 +18,8 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID") or 0)
 MIN_WITHDRAW = int(os.environ.get("MIN_WITHDRAW", 50))
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(HERE, "freestars.db")
-WELCOME_FILE_ID = None\nBASE_REWARD = 1.0
+WELCOME_FILE_ID = None
+BASE_REWARD = 1.0
 REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
 bot = Bot(BOT_TOKEN)
