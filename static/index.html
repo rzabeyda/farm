@@ -284,10 +284,6 @@ nav button:active{transform:scale(.93)}
       <div class="wcard">
         <div class="lbl"><span>До вывода <span id="p-pend"></span></span><b id="p-prog">0 / 50</b></div>
         <div class="bar"><i id="bar"></i></div>
-        <div class="btns">
-          <button class="wd" id="wd">Вывести</button>
-          <button class="hist" id="hist"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>История</button>
-        </div>
       </div>
     </section>
 
@@ -356,7 +352,7 @@ function invite(){
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
-function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:()=>$('wd').onclick()},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
+function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:doWithdraw},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
 function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить статус',f:mStatus})}
 function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
@@ -387,7 +383,7 @@ async function buy(k){
     tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('Статус активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}
 }
-function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить! Нажми кнопку на главном экране.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:null)}
+function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить. Нажми кнопку ниже.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:{t:'Вывести '+b,f:doWithdraw},{t:'История выплат',f:mHistory})}
 function burst(){
   const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
   for(let i=0;i<16;i++){const f=document.createElement('div');f.className='fx';f.innerHTML='<img src=/static/star.png alt= draggable=false>';
@@ -427,8 +423,6 @@ function render(){
   const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Купить';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
-  $('wd').classList.toggle('low',b<S.min_withdraw);
-  $('wd').textContent=b<S.min_withdraw?'Вывести (мин. '+S.min_withdraw+')':'Вывести '+b;
 }
 $('claim').onclick=async()=>{
   if(S&&S.claimed_today){mTomorrow();return}
@@ -438,19 +432,18 @@ $('claim').onclick=async()=>{
     toast('+'+fmt(S.reward)+' получено!')}
   catch(e){toast('Ошибка, попробуй ещё раз')}
 };
-$('wd').onclick=()=>{
+function doWithdraw(){
   if(Math.floor(S.balance)<S.min_withdraw){mWithdraw();return}
   const go=async()=>{try{S=await api('withdraw');render();toast('Заявка на вывод создана')}catch(e){toast('Не удалось вывести')}};
   tg&&tg.showConfirm?tg.showConfirm('Вывести '+Math.floor(S.balance)+' звёзд?',ok=>ok&&go()):go();
-};
+}
 $('inv').onclick=invite;
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
-$('hist').onclick=()=>S&&mHistory();
 $('stcard').onclick=()=>S&&mStatus();
 $('streak').onclick=()=>S&&mStreak();
 document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
 document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
-document.querySelector('.wcard').onclick=e=>{if(S&&!e.target.closest('#wd,#hist'))mWithdraw()};
+document.querySelector('.wcard').onclick=()=>S&&mBalance();
 setInterval(()=>{
   if(!S||!S.claimed_today)return;
   const d=new Date().toISOString().slice(0,10);
