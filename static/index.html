@@ -215,6 +215,21 @@ b.t-gold{background-image:linear-gradient(90deg,#ffb800,#fff1a8,#ffb800)}b.t-dia
 .card.me.s-platinum .badge{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}
 .card.me.s-diamond .badge{background:linear-gradient(135deg,#ff2bd6,#a100ff);color:#fff}
 .card.me[class*=s-]:after{content:"";position:absolute;top:-20%;left:-60%;width:35%;height:140%;pointer-events:none;transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:tsh 4.2s ease-in-out infinite}
+.help{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1.5px solid rgba(255,192,31,.7);background:rgba(255,184,0,.1);color:#ffc01f;padding:0;transition:transform .15s;animation:hp 2.8s ease-in-out infinite}
+.help:active{transform:scale(.88)}@keyframes hp{50%{box-shadow:0 0 16px rgba(255,184,0,.55)}}
+header{gap:8px}.invite{padding:11px 13px}
+@media (max-width:380px){.bal .bl{display:none}}
+.inf{padding:12px 0;border-top:1px solid var(--line)}.inf:first-of-type{border-top:0}.inf h4{margin:0 0 4px;font-size:15px;color:var(--pink)}.inf p{margin:0;font-size:13.5px;line-height:1.5;color:var(--dim)}.inf b{color:var(--txt)}
+#ob{display:none;position:absolute;inset:0;z-index:30;flex-direction:column;align-items:center;padding:calc(18px + env(safe-area-inset-top)) 22px calc(22px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 50% 28%,#2a1d00 0,#000 62%)}
+#ob.on{display:flex;animation:fade .35s both}@keyframes fade{from{opacity:0}}
+.ob-skip{align-self:flex-end;border:0;background:none;color:var(--dim);font-size:14px;font-weight:600;padding:8px}
+.ob-card{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;max-width:320px}
+.ob-card.in{animation:obin .5s cubic-bezier(.2,.9,.25,1) both}@keyframes obin{from{opacity:0;transform:translateX(34px)}}
+.ob-ic{width:132px;height:132px;border-radius:50%;display:grid;place-items:center;margin-bottom:26px;background:radial-gradient(circle,rgba(255,184,0,.22),rgba(255,184,0,.04) 70%);border:1.5px solid rgba(255,192,31,.5);box-shadow:0 0 50px rgba(255,184,0,.3);color:#ffc01f;animation:float 3.2s ease-in-out infinite}
+.ob-ic img{width:70px;height:70px}.ob-ic svg{width:62px;height:62px}
+.ob-card h2{margin:0 0 10px;font-size:26px;letter-spacing:-.6px}.ob-card p{margin:0;color:var(--dim);font-size:15.5px;line-height:1.5}.ob-card p b{color:var(--txt)}
+.ob-dots{display:flex;gap:8px;margin:14px 0 18px}.ob-dots i{width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.18);transition:.3s}.ob-dots i.on{width:26px;background:var(--grad)}
+#ob .wd{width:100%;max-width:340px;padding:16px;font-size:16px}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -249,6 +264,7 @@ nav button:active{transform:scale(.93)}
       <span class="bl">Баланс<br>звёзд</span>
       <div class="bn"><b id="bal">0</b></div>
     </div>
+    <button class="help" id="help" aria-label="Как играть"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9.2a3 3 0 1 1 4.6 2.5c-1 .6-1.6 1.2-1.6 2.3"/><path d="M12 18v.01"/></svg></button>
     <button class="invite" id="inv">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
       Пригласить
@@ -300,6 +316,7 @@ nav button:active{transform:scale(.93)}
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/></svg>Профиль</button>
   </nav>
 
+  <div id="ob"><button class="ob-skip" id="ob-skip">Пропустить</button><div class="ob-card" id="ob-card"></div><div class="ob-dots" id="ob-dots"></div><button class="wd" id="ob-next">Далее</button></div>
   <div class="sheet" id="sheet"><div class="box"><div class="grab"></div><h3 id="sh-t"></h3><div id="sh-b"></div></div></div>
   <div id="toast"></div>
   <div id="out">
@@ -396,7 +413,7 @@ function render(){
   $('claim').classList.toggle('done',done);$('orb').classList.toggle('off',done);
   $('claimTxt').textContent=done?'Приходи завтра':'Я не бот!';
   $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
-  $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
+  $('hSub').textContent=done?'Следующая звезда через '+leftTxt():'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
   
   $('p-daily').textContent=fmt(S.max_daily);
   $('p-total').textContent=S.friends_today+' / '+S.refs;
@@ -434,6 +451,46 @@ $('streak').onclick=()=>S&&mStreak();
 document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
 document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
 document.querySelector('.wcard').onclick=e=>{if(S&&!e.target.closest('#wd,#hist'))mWithdraw()};
+setInterval(()=>{
+  if(!S||!S.claimed_today)return;
+  const d=new Date().toISOString().slice(0,10);
+  if(S.today&&d!==S.today){api('me').then(s=>{S=s;render()}).catch(()=>{});return}
+  $('hSub').textContent='Следующая звезда через '+leftTxt();
+},30000);
+function mInfo(){
+  const st=S?S.statuses.map(s=>s.name+' (+'+s.bonus+' в день, '+s.price+' звёзд)').join(', '):'';
+  $('sh-t').textContent='Как играть';
+  $('sh-b').innerHTML='<div class="tl">'
+   +'<div class="inf"><h4>1. Забирай звезду</h4><p>Раз в день нажимай большую кнопку <b>«Я не бот!»</b> и получай <b>1 звезду</b>. Следующая будет доступна после 00:00 по UTC (03:00 по Москве). Бот напомнит, если забудешь.</p></div>'
+   +'<div class="inf"><h4>2. Приглашай друзей</h4><p>Нажми <b>«Пригласить»</b> и отправь ссылку. Каждый раз, когда твой друг нажимает кнопку, ты получаешь <b>+1 звезду</b>. Кто нажал сегодня, видно в профиле по галочке.</p></div>'
+   +'<div class="inf"><h4>3. Стрик</h4><p>Заходи каждый день подряд. Если пропустить день, серия начнётся заново.</p></div>'
+   +'<div class="inf"><h4>4. Статусы</h4><p>Статус навсегда увеличивает твою награду в день: '+st+'. Более высокий статус заменяет прежний, платится только разница. Оплата в Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>5. Вывод</h4><p>Накопи минимум <b>'+(S?S.min_withdraw:50)+' звёзд</b> и нажми <b>«Вывести»</b>. Заявка попадёт к админу, выплата вручную. Статус заявок смотри в «История выплат».</p></div>'
+   +'</div><button class="go" id="sh-go">Показать обучение</button><button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;$('sh-go').onclick=()=>{closeM();showOb()};
+  $('sheet').classList.add('on');
+}
+$('help').onclick=()=>S&&mInfo();
+const OB=[
+ {t:'Забирай звезду каждый день',s:'Нажми <b>«Я не бот!»</b> раз в день и получи <b>1 звезду</b> Telegram Stars.',i:'<img src="/static/star.png" alt="">'},
+ {t:'Приглашай друзей',s:'За каждого друга, который нажал кнопку, ты получаешь <b>+1 звезду</b> каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c.6-3.7 3.2-5.6 6.5-5.6s5.9 1.9 6.5 5.6"/><path d="M17.5 8.5v6M14.5 11.5h6"/></svg>'},
+ {t:'Покупай статус',s:'<b>Gold, Platinum, Diamond</b> навсегда увеличивают награду за каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
+ {t:'Выводи звёзды',s:'Накопи минимум и нажми <b>«Вывести»</b>. Заявка придёт админу, статус смотри в истории выплат.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg>'}
+];
+let obI=0;
+function obDraw(){
+  const o=OB[obI],c=$('ob-card');
+  c.innerHTML='<div class="ob-ic">'+o.i+'</div><h2>'+o.t+'</h2><p>'+o.s+'</p>';
+  c.classList.remove('in');void c.offsetWidth;c.classList.add('in');
+  $('ob-dots').innerHTML=OB.map((_,i)=>'<i class="'+(i===obI?'on':'')+'"></i>').join('');
+  $('ob-next').textContent=obI===OB.length-1?'Начать':'Далее';
+  $('ob-skip').style.visibility=obI===OB.length-1?'hidden':'visible';
+}
+function showOb(){obI=0;obDraw();$('ob').classList.add('on')}
+function hideOb(){$('ob').classList.remove('on');try{localStorage.setItem('fs_ob','1')}catch(e){}}
+$('ob-next').onclick=()=>{if(obI<OB.length-1){obI++;obDraw()}else hideOb()};
+$('ob-skip').onclick=hideOb;
+function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob')==='1'}catch(e){}if(!seen)showOb()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));
   b.classList.add('on');$(b.dataset.t).classList.add('on');
@@ -445,7 +502,7 @@ if(u){
   else $('ava').textContent=(u.first_name||'?')[0].toUpperCase();
 }
 if(!tg||!tg.initData){$('out').classList.add('on')}
-else api('me').then(s=>{S=s;render()}).catch(()=>toast('Ошибка загрузки'));
+else api('me').then(s=>{S=s;render();maybeOb()}).catch(()=>toast('Ошибка загрузки'));
 </script>
 </body>
 </html>

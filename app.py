@@ -1,9 +1,10 @@
-import asyncio, hashlib, hmac, json, os, sqlite3, time
+import asyncio, glob, hashlib, hmac, json, os, shutil, sqlite3, time
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
                            CallbackQuery, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
@@ -18,6 +19,9 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID") or 0)
 MIN_WITHDRAW = int(os.environ.get("MIN_WITHDRAW", 50))
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(HERE, "freestars.db")
+REMIND_HOUR = int(os.environ.get("REMIND_HOUR_UTC", 9))   # 12:00 по Москве
+BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
+BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
 BASE_REWARD = 1.0
 # Статусы за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
@@ -57,6 +61,13 @@ def init_db():
             c.execute("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''")
         except sqlite3.OperationalError:
             pass
+        c.execute("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT)")
+        for ddl in ("ALTER TABLE users ADD COLUMN last_remind TEXT",
+                    "ALTER TABLE users ADD COLUMN remind_off INTEGER NOT NULL DEFAULT 0"):
+            try:
+                c.execute(ddl)
+            except sqlite3.OperationalError:
+                pass
         try:
             c.execute("ALTER TABLE users ADD COLUMN earned REAL NOT NULL DEFAULT 0")
             c.execute("UPDATE users SET earned=balance")
@@ -136,13 +147,104 @@ def state(c, uid):
     return {
         "balance": round(u["balance"], 4), "daily": daily, "max_daily": round(daily + REF_BONUS * n, 4), "refs": n, "refs_total": total,
         "friends_today": ftoday, "friends": fr,
-        "claimed_today": u["last_claim"] == today(), "streak": streak,
+        "claimed_today": u["last_claim"] == today(), "streak": streak, "today": today(),
         "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4),
         "status": status_of(c, uid), "status_bonus": status_bonus(c, uid),
         "statuses": [{"key": k, "name": v[2], "price": v[0], "bonus": v[1], "pay": status_price(c, uid, k)}
                      for k, v in STATUSES.items()],
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
     }
+
+
+def make_backup():
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    path = os.path.join(BACKUP_DIR, f"freestars-{today()}.db")
+    src = sqlite3.connect(DB_PATH)
+    dst = sqlite3.connect(path)
+    with dst:
+        src.backup(dst)
+    src.close()
+    dst.close()
+    for old in sorted(glob.glob(os.path.join(BACKUP_DIR, "freestars-*.db")))[:-14]:
+        os.remove(old)
+    return path
+
+
+async def send_backup():
+    path = await asyncio.to_thread(make_backup)
+    if ADMIN_ID:
+        try:
+            await bot.send_document(ADMIN_ID, FSInputFile(path), caption=f"Бэкап базы {today()}")
+        except Exception as e:
+            print("backup send:", e)
+    return path
+
+
+def meta_get(k):
+    with closing(db()) as c:
+        r = c.execute("SELECT v FROM meta WHERE k=?", (k,)).fetchone()
+        return r["v"] if r else None
+
+
+def meta_set(k, v):
+    with closing(db()) as c:
+        c.execute("INSERT INTO meta(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (k, v))
+        c.commit()
+
+
+async def run_reminders():
+    t = today()
+    week_ago = datetime.fromtimestamp(time.time() - 7 * 86400, timezone.utc).strftime("%Y-%m-%d")
+    with closing(db()) as c:
+        users = c.execute(
+            "SELECT id,streak,last_claim FROM users WHERE remind_off=0 AND (last_claim IS NULL OR last_claim<>?) "
+            "AND (last_remind IS NULL OR last_remind<>?) "
+            "AND ((last_claim IS NULL AND created>=?) OR last_claim>=?)",
+            (t, t, int(time.time()) - 3 * 86400, week_ago)).fetchall()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Забрать звезду", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    sent = blocked = 0
+    for u in users:
+        text = "Твоя звезда за сегодня ждёт. Нажми «Я не бот» и забери её."
+        if u["streak"] and u["last_claim"]:
+            text += f"\nСерия {u['streak']} дн. — не потеряй её."
+        text += "\nОтключить напоминания: /stop"
+        try:
+            await bot.send_message(u["id"], text, reply_markup=kb)
+            sent += 1
+            upd = "UPDATE users SET last_remind=? WHERE id=?"
+            args = (t, u["id"])
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(e.retry_after + 1)
+            continue
+        except TelegramForbiddenError:
+            blocked += 1
+            upd = "UPDATE users SET remind_off=1, last_remind=? WHERE id=?"
+            args = (t, u["id"])
+        except Exception:
+            continue
+        with closing(db()) as c:
+            c.execute(upd, args)
+            c.commit()
+        await asyncio.sleep(0.05)
+    return sent, blocked, len(users)
+
+
+async def scheduler():
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            if now.hour >= BACKUP_HOUR and meta_get("backup_day") != today():
+                meta_set("backup_day", today())
+                await send_backup()
+            if now.hour >= REMIND_HOUR and meta_get("remind_day") != today():
+                meta_set("remind_day", today())
+                sent, blocked, total = await run_reminders()
+                if ADMIN_ID:
+                    await bot.send_message(ADMIN_ID, f"Напоминания: отправлено {sent}, заблокировали бота {blocked}, из {total}")
+        except Exception as e:
+            print("scheduler:", e)
+        await asyncio.sleep(60)
 
 
 @asynccontextmanager
@@ -154,8 +256,10 @@ async def lifespan(_):
     except Exception as e:
         print("menu button:", e)
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
+    sched = asyncio.create_task(scheduler())
     yield
     task.cancel()
+    sched.cancel()
     await bot.session.close()
 
 
@@ -324,7 +428,9 @@ def admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
          InlineKeyboardButton(text="Заявки на вывод", callback_data="adm:wd")],
-        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")]])
+        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")],
+        [InlineKeyboardButton(text="Разослать напоминания", callback_data="adm:remind"),
+         InlineKeyboardButton(text="Бэкап сейчас", callback_data="adm:backup")]])
 
 
 def stats_text():
@@ -395,6 +501,12 @@ async def admin_cb(q: CallbackQuery):
                              "WHERE f.ref_active=1 GROUP BY u.id ORDER BY n DESC LIMIT 15").fetchall()
         text = "Топ по друзьям (активные):\n\n" + ("\n".join(f"{i}. {_name(r)} (id {r['id']}): {r['n']}" for i, r in enumerate(rows, 1)) or "Пока пусто")
         await show(q, text, admin_kb())
+    elif parts[1] == "remind":
+        sent, blocked, total = await run_reminders()
+        note = f"Отправлено {sent}, заблокировали {blocked}, всего {total}"
+    elif parts[1] == "backup":
+        await send_backup()
+        note = "Бэкап отправлен в чат"
     elif parts[1] == "wd":
         if len(parts) > 2 and parts[2] == "paid":
             row = await mark_paid(int(parts[3]))
@@ -404,7 +516,10 @@ async def admin_cb(q: CallbackQuery):
                              "JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.id LIMIT 10").fetchall()
         if not rows:
             await show(q, "Заявок на вывод нет", admin_kb())
-            await q.answer(note)
+            try:
+                await q.answer(note)
+            except Exception:
+                pass
             return
         text = "Заявки на вывод (нажми, чтобы отметить выплаченной):\n\n" + "\n".join(
             f"#{r['id']}: {int(r['amount'])} звёзд, {_name(r)}" + (f" (@{r['username']})" if r["username"] else " (нет username)")
@@ -413,7 +528,26 @@ async def admin_cb(q: CallbackQuery):
             text=f"Выплачено #{r['id']} ({int(r['amount'])})", callback_data=f"adm:wd:paid:{r['id']}")] for r in rows]
             + [[InlineKeyboardButton(text="Назад", callback_data="adm:stats")]])
         await show(q, text, kb)
-    await q.answer(note)
+    try:
+        await q.answer(note)
+    except Exception:
+        pass
+
+
+@dp.message(Command("stop"))
+async def stop_remind(m: Message):
+    with closing(db()) as c:
+        c.execute("UPDATE users SET remind_off=1 WHERE id=?", (m.from_user.id,))
+        c.commit()
+    await m.answer("Напоминания отключены. Включить снова: /remind")
+
+
+@dp.message(Command("remind"))
+async def start_remind(m: Message):
+    with closing(db()) as c:
+        c.execute("UPDATE users SET remind_off=0 WHERE id=?", (m.from_user.id,))
+        c.commit()
+    await m.answer("Напоминания включены")
 
 
 @dp.message(CommandStart())
@@ -421,6 +555,7 @@ async def start(m: Message, command: CommandObject):
     u = m.from_user
     with closing(db()) as c:
         ensure_user(c, u.id, u.username, u.first_name, parse_ref(command.args))
+        c.execute("UPDATE users SET remind_off=0 WHERE id=?", (u.id,))
         c.commit()
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
