@@ -114,7 +114,7 @@ main::-webkit-scrollbar{display:none}
 .fl{margin-top:2px}.fl .row{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--line);font-size:14px;font-weight:600}.fl .row:first-of-type{border-top:0}.pg{color:var(--dim);font-weight:500;font-size:11.5px}.fl .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px}.fl .mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}.fl .mk.y{background:rgba(52,211,153,.16);color:#34d399}.fl .mk.n{background:rgba(255,69,58,.16);color:#ff4d4d;box-shadow:0 0 12px rgba(255,69,58,.25)}.fl .empty{color:var(--dim);font-size:13px;text-align:center;padding:10px 0 2px}.fl h4{margin:0 0 6px;font-size:14px}
 .wcard{width:100%;margin-top:14px;padding:12px 14px;border-radius:18px;background:var(--card);border:1px solid var(--line)}.wcard .bar{height:6px;margin:8px 0 10px}.wcard .wd{padding:11px;font-size:14px;border-radius:13px}.wcard .lbl{font-size:12px}
 .card.me{padding:10px 14px;gap:12px}.me .ava{width:42px;height:42px;font-size:18px}.me b{font-size:16px}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.mini{padding:10px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}.mini small{display:block;color:var(--dim);font-size:11px}.mini b{font-size:20px;font-weight:800}.mini b em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.mini{padding:10px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}.mini small{display:block;color:var(--txt);opacity:.85;font-size:14px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:2px}.mini b{font-size:20px;font-weight:800}.mini b em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .card.fl{padding:4px 14px}.fl .row{padding:9px 0;font-size:13.5px}.fl .mk{width:22px;height:22px}
 .sheet{position:absolute;inset:0;z-index:15;display:flex;align-items:flex-end;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
 .sheet.on{opacity:1;pointer-events:auto}
@@ -295,7 +295,7 @@ nav button:active{transform:scale(.93)}
         <div class="badge" id="badge">Новичок</div>
       </div>
       <div class="duo">
-        <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
+        <div class="mini"><small>Доход</small><b><em id="p-daily">1</em></b></div>
         <div class="mini"><small>Друзья</small><b id="p-total">0</b></div>
       </div>
       <div class="duo">
@@ -355,7 +355,7 @@ function invite(){
 const INVB={t:'Пригласить друга',inv:1,f:invite};
 function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:doWithdraw},{t:'История выплат',f:mHistory},{t:'Купить VIP',f:mStatus})}
 function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус VIP','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить VIP',f:mStatus})}
-function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Друг начинает приносить звёзды после '+S.ref_min_days+' дней игры (не обязательно подряд). Дальше каждый его клик за день даёт тебе +1 звезду.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
+function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
 async function mHistory(){
@@ -457,7 +457,7 @@ function mInfo(){
   $('sh-t').textContent='Как играть';
   $('sh-b').innerHTML='<div class="tl">'
    +'<div class="inf"><h4>1. Забирай звезду</h4><p>Раз в день нажимай большую кнопку <b>«Я не бот!»</b> и получай <b>1 звезду</b>. Следующая будет доступна после 00:00 по UTC (03:00 по Москве). Бот напомнит, если забудешь.</p></div>'
-   +'<div class="inf"><h4>2. Приглашай друзей</h4><p>Нажми <b>«Пригласить»</b> и отправь ссылку. Когда друг сыграет 3 дня, каждый его клик за день даёт тебе <b>+1 звезду</b>. Кто нажал сегодня, видно в профиле по галочке.</p></div>'
+   +'<div class="inf"><h4>2. Приглашай друзей</h4><p>Нажми <b>«Пригласить»</b> и отправь ссылку. Каждый раз, когда друг нажимает кнопку, ты получаешь <b>+1 звезду</b>. Кто нажал сегодня, видно в профиле по галочке.</p></div>'
    +'<div class="inf"><h4>3. Стрик</h4><p>Заходи каждый день подряд. Если пропустить день, серия начнётся заново.</p></div>'
    +'<div class="inf"><h4>4. VIP</h4><p>VIP навсегда увеличивает твою награду в день: '+st+'. Более высокий уровень заменяет прежний, платится только разница. Оплата в Telegram Stars.</p></div>'
    +'<div class="inf"><h4>5. Вывод</h4><p>Накопи минимум <b>'+(S?S.min_withdraw:50)+' звёзд</b> и нажми <b>«Вывести»</b>. Заявка попадёт к админу, выплата вручную. Статус заявок смотри в «История выплат».</p></div>'
@@ -468,7 +468,7 @@ function mInfo(){
 $('help').onclick=()=>S&&mInfo();
 const OB=[
  {t:'Забирай звезду каждый день',s:'Нажми <b>«Я не бот!»</b> раз в день и получи <b>1 звезду</b> Telegram Stars.',i:'<img src="/static/star.png" alt="">'},
- {t:'Приглашай друзей',s:'За каждого друга, который играет (с 3-го дня), ты получаешь <b>+1 звезду</b> в день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c.6-3.7 3.2-5.6 6.5-5.6s5.9 1.9 6.5 5.6"/><path d="M17.5 8.5v6M14.5 11.5h6"/></svg>'},
+ {t:'Приглашай друзей',s:'За каждого друга, который нажал кнопку, ты получаешь <b>+1 звезду</b> каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c.6-3.7 3.2-5.6 6.5-5.6s5.9 1.9 6.5 5.6"/><path d="M17.5 8.5v6M14.5 11.5h6"/></svg>'},
  {t:'Покупай VIP',s:'<b>Gold, Platinum, Diamond</b> навсегда увеличивают награду за каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
  {t:'Выводи звёзды',s:'Накопи минимум и нажми <b>«Вывести»</b>. Заявка придёт админу, статус смотри в истории выплат.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg>'}
 ];
