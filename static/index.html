@@ -3,118 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <title>Free Stars</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--bg:#000;--card:#0e0710;--line:#2a1230;--txt:#fff;--dim:#a58bb0;--pink:#ff2bd6;--pink2:#b400ff}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
-body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 38%,rgba(255,43,214,.16),transparent 55%);pointer-events:none;animation:glow 4s ease-in-out infinite alternate}
-@keyframes glow{to{opacity:.45}}
-#app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;position:relative}
-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));animation:down .5s both}
-@keyframes down{from{opacity:0;transform:translateY(-14px)}}
-@keyframes up{from{opacity:0;transform:translateY(18px)}}
-.bal{font-size:24px;font-weight:800;display:flex;align-items:center;gap:8px;text-shadow:0 0 18px rgba(255,43,214,.7)}
-.bal small{display:block;font-size:11px;color:var(--dim);font-weight:500;text-shadow:none}
-.bump{animation:bump .5s}@keyframes bump{40%{transform:scale(1.25);color:var(--pink)}}
-.invite{background:linear-gradient(135deg,var(--pink),var(--pink2));border:0;color:#fff;border-radius:20px;padding:10px 14px;font-size:13px;font-weight:700;box-shadow:0 0 18px rgba(255,43,214,.45);transition:transform .12s}
-main{flex:1;overflow:auto;padding:8px 16px 16px}
-.tab{display:none}.tab.on{display:block;animation:up .4s both}
-#home.on{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;text-align:center}
-.star{font-size:104px;line-height:1;filter:drop-shadow(0 0 28px rgba(255,43,214,.8));animation:float 3s ease-in-out infinite}
-@keyframes float{50%{transform:translateY(-12px) rotate(6deg) scale(1.05)}}
-.star.pop{animation:pop .7s}@keyframes pop{30%{transform:scale(1.5) rotate(-12deg)}}
-.hint{color:var(--dim);margin:16px 0 28px;font-size:15px}
-.claim{width:100%;max-width:340px;border:0;border-radius:18px;padding:19px;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;box-shadow:0 0 30px rgba(255,43,214,.55);transition:transform .12s;animation:pulse 2s infinite}
-@keyframes pulse{50%{box-shadow:0 0 48px rgba(255,43,214,.9)}}
-.claim:active,.invite:active,.wd:active{transform:scale(.94)}
-.claim:disabled{background:var(--card);color:var(--dim);border:1px solid var(--line);box-shadow:none;animation:none}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;transition:transform .12s,border-color .2s;animation:up .5s both}
-.card:nth-child(2){animation-delay:.08s}
-.card:active{transform:scale(.98);border-color:var(--pink)}
-.row{display:flex;justify-content:space-between;padding:7px 0;color:var(--dim)}.row b{color:var(--txt)}
-.wd{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:800;background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;margin-top:8px;transition:transform .12s}
-.wd:disabled{background:var(--line);color:var(--dim)}
-nav{display:flex;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);background:rgba(0,0,0,.85)}
-nav button{flex:1;background:none;border:0;color:var(--dim);padding:10px 0 12px;font-size:12px;transition:.2s}
-nav button span{display:block;font-size:22px;transition:transform .2s}nav button.on{color:var(--pink);text-shadow:0 0 12px var(--pink)}
-nav button.on span{transform:translateY(-3px) scale(1.15)}
-#toast{position:fixed;left:50%;top:76px;transform:translate(-50%,-20px);background:var(--pink);color:#fff;font-weight:700;padding:10px 18px;border-radius:14px;opacity:0;transition:.25s;pointer-events:none;font-size:14px;box-shadow:0 0 20px rgba(255,43,214,.6)}
-#toast.show{opacity:1;transform:translate(-50%,0)}
+:root{
+  --bg:#000;--card:rgba(255,255,255,.045);--line:rgba(255,255,255,.09);
+  --txt:#fff;--dim:#9b8aa6;--pink:#ff2bd6;--pink2:#a100ff;--grad:linear-gradient(135deg,#ff2bd6,#a100ff);
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:#000;color:var(--txt);
+  font-family:Inter,-apple-system,"SF Pro Display","Segoe UI",Roboto,sans-serif;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+svg{display:block}
+
+/* ===== рамка смартфона: на любом экране приложение = размер телефона ===== */
+body{display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0,#1a0620 0,#000 60%)}
+#app{position:relative;display:flex;flex-direction:column;overflow:hidden;
+  width:100%;height:100%;max-width:430px;background:#000;isolation:isolate}
+@media (min-width:600px){
+  #app{height:min(900px,96vh);border-radius:44px;border:1px solid var(--line);
+    box-shadow:0 0 0 8px #0b0b0d,0 0 90px rgba(255,43,214,.28),0 40px 100px rgba(0,0,0,.8)}
+}
+/* фоновое свечение */
+#app:before,#app:after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(70px);pointer-events:none}
+#app:before{width:320px;height:320px;left:-90px;top:-60px;background:rgba(255,43,214,.32);animation:drift 9s ease-in-out infinite alternate}
+#app:after{width:300px;height:300px;right:-100px;bottom:60px;background:rgba(161,0,255,.28);animation:drift 11s ease-in-out infinite alternate-reverse}
+@keyframes drift{to{transform:translate(40px,50px) scale(1.15)}}
+
+/* ===== шапка ===== */
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(16px + env(safe-area-inset-top)) 16px 10px;animation:down .6s both}
+.bal{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;
+  background:var(--card);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.bal .ic{width:36px;height:36px;border-radius:50%;background:var(--grad);display:grid;place-items:center;
+  box-shadow:0 0 18px rgba(255,43,214,.6)}
+.bal b{display:block;font-size:19px;font-weight:800;line-height:1.1;letter-spacing:-.3px}
+.bal small{display:block;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+.invite{display:flex;align-items:center;gap:7px;border:0;color:#fff;font-weight:700;font-size:13px;
+  padding:11px 15px;border-radius:999px;background:var(--grad);box-shadow:0 6px 24px rgba(255,43,214,.45);
+  transition:transform .15s}
+.bump{animation:bump .55s}
+@keyframes bump{35%{transform:scale(1.22);color:#ff7be9}}
+@keyframes down{from{opacity:0;transform:translateY(-16px)}}
+@keyframes up{from{opacity:0;transform:translateY(22px)}}
+
+/* ===== контент ===== */
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 16px 14px;scrollbar-width:none}
+main::-webkit-scrollbar{display:none}
+.tab{display:none;min-height:100%}
+.tab.on{display:block;animation:up .45s both}
+#home.on{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+
+/* главная кнопка с кольцами */
+.orb{position:relative;width:230px;height:230px;margin:6px 0 10px;display:grid;place-items:center}
+.orb i{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,43,214,.45);animation:ring 3.2s linear infinite}
+.orb i:nth-child(2){animation-delay:1.06s}.orb i:nth-child(3){animation-delay:2.12s}
+@keyframes ring{from{transform:scale(.62);opacity:.9}to{transform:scale(1.18);opacity:0}}
+.claim{position:relative;width:170px;height:170px;border-radius:50%;border:0;color:#fff;
+  background:var(--grad);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-size:19px;font-weight:800;letter-spacing:-.2px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 0 60px rgba(255,43,214,.65),0 20px 50px rgba(161,0,255,.45);
+  transition:transform .15s,filter .3s;animation:breath 2.6s ease-in-out infinite}
+@keyframes breath{50%{transform:scale(1.045)}}
+.claim:active{transform:scale(.93);animation:none}
+.claim svg{filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-5px) rotate(8deg)}}
+.claim.done{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1.5px var(--line);color:var(--dim);animation:none;font-size:15px}
+.claim.done svg{animation:none;opacity:.5}
+.orb.off i{display:none}
+.claim.pop svg{animation:pop .7s}
+@keyframes pop{30%{transform:scale(1.7) rotate(-14deg)}}
+.title{font-size:25px;font-weight:800;letter-spacing:-.6px;margin:2px 0 0}
+.sub{color:var(--dim);font-size:14.5px;line-height:1.4;max-width:290px}
+.chips{display:flex;gap:8px;margin-top:16px}
+.chip{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:999px;font-size:13px;font-weight:600;
+  background:var(--card);border:1px solid var(--line);backdrop-filter:blur(12px);transition:transform .15s}
+
+/* карточки */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;
+  backdrop-filter:blur(16px);transition:transform .15s,border-color .25s,box-shadow .25s;animation:up .5s both}
+.card:nth-child(2){animation-delay:.07s}.card:nth-child(3){animation-delay:.14s}
+.card:active{transform:scale(.975);border-color:rgba(255,43,214,.6);box-shadow:0 0 28px rgba(255,43,214,.25)}
+.me{display:flex;align-items:center;gap:14px}
+.ava{width:56px;height:56px;border-radius:50%;background:var(--grad);display:grid;place-items:center;
+  font-size:24px;font-weight:800;box-shadow:0 0 24px rgba(255,43,214,.5);overflow:hidden}
+.ava img{width:100%;height:100%;object-fit:cover}
+.me b{font-size:18px;display:block}.me span{color:var(--dim);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:18px;padding:14px;transition:transform .15s}
+.stat:active{transform:scale(.95)}
+.stat small{color:var(--dim);font-size:11.5px;display:block;margin-bottom:6px}
+.stat b{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.stat b em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--grad);box-shadow:0 0 14px var(--pink);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
+.lbl b{color:var(--txt)}
+.wd{width:100%;border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:800;color:#fff;
+  background:var(--grad);box-shadow:0 8px 28px rgba(255,43,214,.4);transition:transform .15s}
+.wd:disabled{background:rgba(255,255,255,.06);color:var(--dim);box-shadow:none}
+.invite:active,.wd:active:not(:disabled),.chip:active{transform:scale(.94)}
+.note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
+
+/* ===== навигация ===== */
+nav{display:flex;gap:6px;margin:0 14px calc(12px + env(safe-area-inset-bottom));padding:6px;border-radius:26px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);backdrop-filter:blur(20px)}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;
+  color:var(--dim);padding:9px 0;border-radius:20px;font-size:11.5px;font-weight:600;transition:.25s}
+nav button.on{color:#fff;background:var(--grad);box-shadow:0 6px 22px rgba(255,43,214,.45)}
+nav button:active{transform:scale(.93)}
+
+#toast{position:absolute;left:50%;top:84px;z-index:9;transform:translate(-50%,-16px) scale(.9);
+  background:var(--grad);color:#fff;font-weight:700;padding:11px 20px;border-radius:16px;font-size:14px;
+  opacity:0;pointer-events:none;transition:.3s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 36px rgba(255,43,214,.55);white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* конфетти */
+.fx{position:absolute;pointer-events:none;font-size:18px;z-index:8;animation:fx 1s ease-out forwards}
+@keyframes fx{to{transform:translate(var(--x),var(--y)) scale(.4) rotate(220deg);opacity:0}}
+
+/* вне Telegram */
+#out{display:none;position:absolute;inset:0;z-index:20;background:#000d;backdrop-filter:blur(10px);
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px}
+#out.on{display:flex}
+#out a{display:inline-block;text-decoration:none;color:#fff;font-weight:800;padding:15px 26px;border-radius:16px;background:var(--grad);box-shadow:0 8px 28px rgba(255,43,214,.5)}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="bal"><span>⭐</span><div><span id="bal">0</span><small>баланс звёзд</small></div></div>
-    <button class="invite" id="inv">👥 Пригласить друга</button>
+    <div class="bal">
+      <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></div>
+      <div><b id="bal">0</b><small>баланс звёзд</small></div>
+    </div>
+    <button class="invite" id="inv">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
+      Пригласить
+    </button>
   </header>
+
   <main>
     <section class="tab on" id="home">
-      <div class="star">⭐</div>
-      <div class="hint" id="hint">Нажми раз в день, чтобы получить звезду</div>
-      <button class="claim" id="claim">Я не бот!</button>
+      <div class="orb" id="orb"><i></i><i></i><i></i>
+        <button class="claim" id="claim">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>
+          <span id="claimTxt">Я не бот!</span>
+        </button>
+      </div>
+      <div class="title" id="hTitle">Забери свою звезду</div>
+      <div class="sub" id="hSub">Нажимай раз в день и копи Telegram Stars</div>
+      <div class="chips">
+        <div class="chip">🔥 <span id="c-streak">0</span> дн. подряд</div>
+        <div class="chip">👥 <span id="c-refs">0</span> друзей</div>
+      </div>
     </section>
+
     <section class="tab" id="profile">
-      <div class="card">
-        <div class="row"><span>Награда в день</span><b id="p-daily">1</b></div>
-        <div class="row"><span>Активных друзей</span><b id="p-refs">0</b></div>
-        <div class="row"><span>Приглашено всего</span><b id="p-total">0</b></div>
-        <div class="row"><span>Дней подряд</span><b id="p-streak">0</b></div>
-        <div class="row"><span>На выводе</span><b id="p-pend">0</b></div>
+      <div class="card me">
+        <div class="ava" id="ava">?</div>
+        <div><b id="uname">Гость</b><span id="uid"></span></div>
       </div>
       <div class="card">
-        <div class="row" style="padding-top:0"><span>Вывод в Telegram Stars</span><b id="p-min"></b></div>
+        <div class="grid">
+          <div class="stat"><small>Награда в день</small><b><em id="p-daily">1</em> ⭐</b></div>
+          <div class="stat"><small>Бонус за друзей</small><b><em id="p-bonus">+0%</em></b></div>
+          <div class="stat"><small>Активных друзей</small><b id="p-refs">0</b></div>
+          <div class="stat"><small>Приглашено</small><b id="p-total">0</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="lbl"><span>Вывод в Telegram Stars</span><b id="p-prog">0 / 50</b></div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50 ⭐</span><span id="p-pend"></span></div>
         <button class="wd" id="wd">Вывести</button>
       </div>
-      <div class="hint" style="font-size:13px;text-align:center">Каждый друг, который зашёл и нажал «Я не бот», даёт +1% к ежедневной награде.</div>
+      <div class="note">Каждый друг, который зашёл и нажал «Я не бот», даёт +1% к ежедневной награде навсегда.</div>
     </section>
   </main>
+
   <nav>
-    <button class="on" data-t="home"><span>⭐</span>Звёзды</button>
-    <button data-t="profile"><span>👤</span>Профиль</button>
+    <button class="on" data-t="home">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>Звёзды</button>
+    <button data-t="profile">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/></svg>Профиль</button>
   </nav>
+
+  <div id="toast"></div>
+  <div id="out">
+    <div style="font-size:54px">⭐</div>
+    <div class="title">Открой в Telegram</div>
+    <div class="sub">Звёзды начисляются только внутри Telegram — там мы убеждаемся, что ты не бот.</div>
+    <a href="https://t.me/freestars5bot" target="_blank">Открыть @freestars5bot</a>
+  </div>
 </div>
-<div id="toast"></div>
+
 <script>
-const tg=Telegram.WebApp;tg.ready();tg.expand();
-try{tg.setHeaderColor('#000000');tg.setBackgroundColor('#000000')}catch(e){}
-const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){}};
-document.addEventListener('click',e=>{if(e.target.closest('button,.card'))hap()});
+const tg=window.Telegram&&Telegram.WebApp;
+if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#000000');tg.setBackgroundColor('#000000');tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}}
 const $=id=>document.getElementById(id);let S=null;
-const fmt=n=>(+n).toFixed(2).replace(/\.?0+$/,'')||'0';
-function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
+const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){try{navigator.vibrate(12)}catch(_){}}};
+document.addEventListener('click',e=>{if(e.target.closest('button,.card,.stat,.chip'))hap()});
+const fmt=n=>{const v=Math.round(+n*100)/100;return String(v)};
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2300)}
 async function api(p){
-  const r=await fetch('/api/'+p,{method:'POST',headers:{'X-Init-Data':tg.initData}});
+  const r=await fetch('/api/'+p,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
   if(!r.ok)throw new Error(r.status);return r.json();
+}
+function burst(){
+  const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
+  for(let i=0;i<16;i++){const f=document.createElement('div');f.className='fx';f.textContent=['⭐','✨','💖'][i%3];
+    f.style.left=(c.left-a.left+c.width/2)+'px';f.style.top=(c.top-a.top+c.height/2)+'px';
+    const ang=Math.random()*6.28,d=90+Math.random()*110;
+    f.style.setProperty('--x',Math.cos(ang)*d+'px');f.style.setProperty('--y',Math.sin(ang)*d+'px');
+    $('app').appendChild(f);setTimeout(()=>f.remove(),1000)}
 }
 function render(){
   $('bal').textContent=fmt(S.balance);
-  const c=$('claim');c.disabled=S.claimed_today;
-  c.textContent=S.claimed_today?'Приходи завтра ✔':'Я не бот!';
-  $('hint').textContent=S.claimed_today?'Награда на сегодня получена':'Нажми, чтобы получить +'+fmt(S.daily)+' ⭐';
-  $('p-daily').textContent=fmt(S.daily)+' ⭐';$('p-refs').textContent=S.refs;
-  $('p-total').textContent=S.refs_total;$('p-streak').textContent=S.streak;
-  $('p-pend').textContent=fmt(S.pending)+' ⭐';$('p-min').textContent='мин. '+S.min_withdraw+' ⭐';
-  $('wd').disabled=S.balance<S.min_withdraw;
+  const done=S.claimed_today;
+  $('claim').classList.toggle('done',done);$('orb').classList.toggle('off',done);$('claim').disabled=done;
+  $('claimTxt').textContent=done?'Приходи завтра':'Я не бот!';
+  $('hTitle').textContent=done?'Награда получена ✨':'Забери свою звезду';
+  $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+' ⭐ — это займёт секунду';
+  $('c-streak').textContent=S.streak;$('c-refs').textContent=S.refs;
+  $('p-daily').textContent=fmt(S.daily);$('p-bonus').textContent='+'+fmt(S.refs)+'%';
+  $('p-refs').textContent=S.refs;$('p-total').textContent=S.refs_total;
+  const b=Math.floor(S.balance);
+  $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw+' ⭐';
+  $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending)+' ⭐':'';
+  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
+  $('wd').disabled=b<S.min_withdraw;
+  $('wd').textContent=b<S.min_withdraw?'Ещё '+(S.min_withdraw-b)+' ⭐ до вывода':'Вывести '+b+' ⭐';
 }
 $('claim').onclick=async()=>{
-  try{S=await api('claim');render();try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}$('bal').classList.remove('bump');void $('bal').offsetWidth;$('bal').classList.add('bump');document.querySelector('.star').classList.add('pop');toast('+'+fmt(S.reward)+' ⭐')}
+  try{S=await api('claim');render();burst();
+    try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
+    const bl=$('bal');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
+    toast('+'+fmt(S.reward)+' ⭐ получено!')}
   catch(e){toast('Ошибка, попробуй ещё раз')}
 };
-$('wd').onclick=()=>tg.showConfirm('Вывести '+Math.floor(S.balance)+' ⭐?',async ok=>{
-  if(!ok)return;try{S=await api('withdraw');render();toast('Заявка отправлена')}catch(e){toast('Не удалось')}
-});
+$('wd').onclick=()=>{
+  const go=async()=>{try{S=await api('withdraw');render();toast('Заявка на вывод создана')}catch(e){toast('Не удалось вывести')}};
+  tg&&tg.showConfirm?tg.showConfirm('Вывести '+Math.floor(S.balance)+' ⭐?',ok=>ok&&go()):go();
+};
 $('inv').onclick=()=>{
-  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи, получай бесплатные ⭐ Telegram Stars каждый день!');
-  tg.openTelegramLink(u);
+  if(!S)return;
+  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('⭐ Заходи и получай бесплатные Telegram Stars каждый день!');
+  tg?tg.openTelegramLink(u):window.open(u,'_blank');
 };
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));
   b.classList.add('on');$(b.dataset.t).classList.add('on');
 });
-api('me').then(s=>{S=s;render()}).catch(()=>toast('Открой приложение через Telegram'));
+const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;
+if(u){
+  $('uname').textContent=u.first_name||u.username||'Гость';$('uid').textContent=u.username?'@'+u.username:'ID '+u.id;
+  if(u.photo_url){const i=new Image();i.src=u.photo_url;$('ava').textContent='';$('ava').appendChild(i)}
+  else $('ava').textContent=(u.first_name||'?')[0].toUpperCase();
+}
+if(!tg||!tg.initData){$('out').classList.add('on')}
+else api('me').then(s=>{S=s;render()}).catch(()=>toast('Ошибка загрузки'));
 </script>
 </body>
 </html>
