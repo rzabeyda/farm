@@ -107,11 +107,6 @@ async def notify_new(u, tag=None):
         return
     who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
     text = f"Новый юзер {who}"
-    with closing(db()) as c:
-        r = c.execute("SELECT r.id,r.username,r.first_name FROM users u JOIN users r ON r.id=u.referrer_id WHERE u.id=?",
-                      (u["id"],)).fetchone()
-    if r:
-        text += " · пригласил " + (f"@{r['username']}" if r["username"] else (r["first_name"] or f"id {r['id']}"))
     try:
         await bot.send_message(ADMIN_ID, text)
     except Exception as e:
