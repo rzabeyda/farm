@@ -5,7 +5,7 @@ from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command, CommandStart, CommandObject
-from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
+from aiogram.types import (FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
                            MenuButtonWebApp, Message, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
@@ -18,7 +18,7 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID") or 0)
 MIN_WITHDRAW = int(os.environ.get("MIN_WITHDRAW", 50))
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(HERE, "freestars.db")
-BASE_REWARD = 1.0
+WELCOME_FILE_ID = None\nBASE_REWARD = 1.0
 REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
 bot = Bot(BOT_TOKEN)
@@ -231,8 +231,16 @@ async def start(m: Message, command: CommandObject):
         c.commit()
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
-    await m.answer("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"
-                   "Приглашай друзей — +1 звезда в день за каждого, кто заходит и жмёт «Я не бот».", reply_markup=kb)
+    text = ("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"
+            "Приглашай друзей — +1 звезда в день за каждого, кто заходит и жмёт «Я не бот».")
+    global WELCOME_FILE_ID
+    try:
+        sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "main.jpg")),
+                                    caption=text, reply_markup=kb)
+        WELCOME_FILE_ID = sent.photo[-1].file_id
+    except Exception as e:
+        print("welcome photo:", e)
+        await m.answer(text, reply_markup=kb)
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(scp *)",
+      "PowerShell(ssh root@84.200.33.70 *)",
+      "PowerShell(git push *)"
+    ]
+  }
+}
