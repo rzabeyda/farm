@@ -199,6 +199,19 @@ nav button.on img{animation:tw 3s ease-in-out infinite}
 b.t-gold,b.t-diamond{background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 3s linear infinite}
 b.t-gold{background-image:linear-gradient(90deg,#ffb800,#fff1a8,#ffb800)}b.t-diamond{background-image:linear-gradient(90deg,#ff2bd6,#ffb0f0,#ff2bd6)}
 #sk-n,#st-name:not(.t-gold):not(.t-platinum):not(.t-diamond){background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card.me{position:relative}.badge{margin-left:auto;display:none;font-size:11.5px;font-weight:800;letter-spacing:.4px;padding:5px 11px;border-radius:99px;text-transform:uppercase}
+.card.me.s-gold,.card.me.s-platinum,.card.me.s-diamond{border-width:1.5px}
+.card.me.s-gold{border-color:rgba(255,200,60,.7);background:linear-gradient(135deg,rgba(255,214,70,.2),rgba(255,140,0,.05) 65%);animation:gl-g 2.8s ease-in-out infinite}
+.card.me.s-platinum{border-color:rgba(225,234,248,.7);background:linear-gradient(135deg,rgba(235,242,255,.18),rgba(150,165,190,.05) 65%);animation:gl-p 3s ease-in-out infinite}
+.card.me.s-diamond{border-color:rgba(255,80,225,.75);background:linear-gradient(135deg,rgba(255,43,214,.24),rgba(161,0,255,.08) 65%);animation:gl-d 2.6s ease-in-out infinite}
+.card.me.s-gold .ava{box-shadow:0 0 0 2.5px #ffc01f,0 0 22px rgba(255,184,0,.6)}
+.card.me.s-platinum .ava{box-shadow:0 0 0 2.5px #dfe7f3,0 0 22px rgba(210,222,245,.55)}
+.card.me.s-diamond .ava{box-shadow:0 0 0 2.5px #ff2bd6,0 0 24px rgba(255,43,214,.7)}
+.card.me[class*=s-] .badge{display:block}
+.card.me.s-gold .badge{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}
+.card.me.s-platinum .badge{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}
+.card.me.s-diamond .badge{background:linear-gradient(135deg,#ff2bd6,#a100ff);color:#fff}
+.card.me[class*=s-]:after{content:"";position:absolute;top:-20%;left:-60%;width:35%;height:140%;pointer-events:none;transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:tsh 4.2s ease-in-out infinite}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -259,9 +272,10 @@ nav button:active{transform:scale(.93)}
     </section>
 
     <section class="tab" id="profile">
-      <div class="card me">
+      <div class="card me" id="me">
         <div class="ava" id="ava">?</div>
         <div><b id="uname">Гость</b><span id="uid"></span></div>
+        <div class="badge" id="badge"></div>
       </div>
       <div class="duo">
         <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
@@ -389,7 +403,7 @@ function render(){
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+(S.streak%10===1&&S.streak%100!==11?'день':(S.streak%10>=2&&S.streak%10<=4&&(S.streak%100<12||S.streak%100>14)?'дня':'дней'));
-  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Купить';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');
+  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Купить';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').classList.toggle('low',b<S.min_withdraw);
