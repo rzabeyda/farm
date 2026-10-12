@@ -138,6 +138,7 @@ def api_claim(x_init_data: str = Header()):
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
         ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
+        c.commit()
         c.execute("BEGIN IMMEDIATE")
         row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         t = today()
