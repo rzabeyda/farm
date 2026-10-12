@@ -235,6 +235,7 @@ header{gap:8px}.invite{padding:11px 13px}
 .tier.t-obsidian{background:linear-gradient(135deg,rgba(139,92,255,.3),rgba(10,6,24,.92) 55%,rgba(60,200,255,.16));border-color:rgba(150,110,255,.8);box-shadow:0 0 28px rgba(139,92,255,.4),inset 0 0 26px rgba(139,92,255,.12);animation:gl-o 2.6s ease-in-out infinite}
 @keyframes gl-o{50%{box-shadow:0 0 44px rgba(139,92,255,.7),inset 0 0 30px rgba(139,92,255,.22)}}
 .tier.t-obsidian:before{animation-delay:3s}
+.tier.t-novice{background:rgba(255,255,255,.04);animation:none}.tier.t-novice b{color:var(--txt)}.tier.t-novice:before{display:none}.tier.t-novice.cur{border-color:rgba(255,255,255,.35)}
 .t-obsidian b,b.t-obsidian{background:linear-gradient(90deg,#8b5cff,#c3b1ff,#5fd8ff,#8b5cff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 3s linear infinite}
 .mini.s-obsidian{border-color:rgba(150,110,255,.85);background:linear-gradient(135deg,rgba(139,92,255,.3),rgba(8,5,20,.85) 70%);animation:gl-o 2.6s ease-in-out infinite}
 .mini.s-obsidian:after{content:"";position:absolute;top:-20%;left:-60%;width:40%;height:140%;pointer-events:none;transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);animation:tsh 4.2s ease-in-out infinite}
@@ -378,8 +379,9 @@ const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond',obsidian:'t-
 function mStatus(){
   $('sh-t').textContent='VIP-уровни';
   $('sh-b').innerHTML='<p>VIP навсегда увеличивает твою награду в день. Покупка за Telegram Stars. Более высокий уровень заменяет предыдущий, оплачивается только разница.</p>'
+   +'<div class="tier t-novice'+(S.status?'':' cur')+'"><div><b>Новичок</b><small>1 звезда в день · бесплатно</small></div><button class="buy" disabled>'+(S.status?'База':'Ты здесь')+'</button></div>'
    +S.statuses.map(s=>{const own=S.status===s.key,low=!own&&s.pay<=0;
-     return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>+'+s.bonus+' звезд в день · цена '+s.price+'</small></div>'
+     return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>+'+s.bonus+' к награде в день (всего '+(1+s.bonus)+') · '+s.price+'</small></div>'
      +'<button class="buy" data-k="'+s.key+'"'+(own||low?' disabled':'')+'>'+(own?'Активен':low?'Ниже':'<img src="/static/star.png" alt="">'+s.pay)+'</button></div>'}).join('')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
