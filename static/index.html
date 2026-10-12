@@ -58,11 +58,11 @@ main::-webkit-scrollbar{display:none}
 #home.on{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
 
 /* главная кнопка с кольцами */
-.orb{position:relative;width:230px;height:230px;margin:6px 0 10px;display:grid;place-items:center}
+.orb{position:relative;width:210px;height:210px;margin:0 0 6px;display:grid;place-items:center}
 .orb i{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,184,0,.45);animation:ring 3.2s linear infinite}
 .orb i:nth-child(2){animation-delay:1.06s}.orb i:nth-child(3){animation-delay:2.12s}
 @keyframes ring{from{transform:scale(.62);opacity:.9}to{transform:scale(1.18);opacity:0}}
-.claim{position:relative;width:170px;height:170px;border-radius:50%;border:0;color:var(--on);
+.claim{position:relative;width:156px;height:156px;border-radius:50%;border:0;color:var(--on);
   background:var(--grad);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   font-size:19px;font-weight:800;letter-spacing:-.2px;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 0 60px rgba(255,184,0,.65),0 20px 50px rgba(255,138,0,.45);
@@ -107,6 +107,10 @@ main::-webkit-scrollbar{display:none}
 .wd:disabled{background:rgba(255,255,255,.06);color:var(--dim);box-shadow:none}
 .invite:active,.wd:active:not(:disabled),.chip:active{transform:scale(.94)}
 .fl{margin-top:2px}.fl .row{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--line);font-size:14px;font-weight:600}.fl .row:first-of-type{border-top:0}.fl .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px}.fl .mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}.fl .mk.y{background:rgba(52,211,153,.16);color:#34d399}.fl .mk.n{background:rgba(255,255,255,.07);color:#8a8a99}.fl .empty{color:var(--dim);font-size:13px;text-align:center;padding:10px 0 2px}.fl h4{margin:0 0 6px;font-size:14px}
+.wcard{width:100%;margin-top:14px;padding:12px 14px;border-radius:18px;background:var(--card);border:1px solid var(--line)}.wcard .bar{height:6px;margin:8px 0 10px}.wcard .wd{padding:11px;font-size:14px;border-radius:13px}.wcard .lbl{font-size:12px}
+.card.me{padding:10px 14px;gap:12px}.me .ava{width:42px;height:42px;font-size:18px}.me b{font-size:16px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.mini{padding:10px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}.mini small{display:block;color:var(--dim);font-size:11px}.mini b{font-size:20px;font-weight:800}.mini b em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card.fl{padding:4px 14px}.fl .row{padding:9px 0;font-size:13.5px}.fl .mk{width:22px;height:22px}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -160,6 +164,11 @@ nav button:active{transform:scale(.93)}
         <div class="chip"><span id="c-streak">0</span> дн. подряд</div>
         <div class="chip"><span id="c-refs">0</span> друзей</div>
       </div>
+      <div class="wcard">
+        <div class="lbl"><span>До вывода <span id="p-pend"></span></span><b id="p-prog">0 / 50</b></div>
+        <div class="bar"><i id="bar"></i></div>
+        <button class="wd" id="wd">Вывести</button>
+      </div>
     </section>
 
     <section class="tab" id="profile">
@@ -167,22 +176,11 @@ nav button:active{transform:scale(.93)}
         <div class="ava" id="ava">?</div>
         <div><b id="uname">Гость</b><span id="uid"></span></div>
       </div>
-      <div class="card">
-        <div class="grid">
-          <div class="stat"><small>Максимум в день</small><b><em id="p-daily">1</em></b></div>
-          <div class="stat"><small>Бонус за друзей (в день)</small><b><em id="p-bonus">+0%</em></b></div>
-          <div class="stat"><small>Активных друзей</small><b id="p-refs">0</b></div>
-          <div class="stat"><small>Друзей нажали сегодня</small><b id="p-total">0</b></div>
-        </div>
+      <div class="duo">
+        <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
+        <div class="mini"><small>Друзья сегодня</small><b id="p-total">0</b></div>
       </div>
-      <div class="card">
-        <div class="lbl"><span>Вывод в Telegram Stars</span><b id="p-prog">0 / 50</b></div>
-        <div class="bar"><i id="bar"></i></div>
-        <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50</span><span id="p-pend"></span></div>
-        <button class="wd" id="wd">Вывести</button>
-      </div>
-      <div class="card fl"><div class="lbl"><span>Мои друзья</span><b id="fl-cnt"></b></div><div id="fl"></div></div>
-      <div class="note">Каждый друг, который зашёл и нажал «Я не бот», приносит тебе +1 звезду каждый день, когда нажимает кнопку.</div>
+      <div class="card fl"><div id="fl"></div></div>
     </section>
   </main>
 
@@ -230,15 +228,15 @@ function render(){
   $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
   $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
   $('c-streak').textContent=S.streak;$('c-refs').textContent=S.refs;
-  $('p-daily').textContent=fmt(S.max_daily);$('p-bonus').textContent='+'+fmt(S.refs);
-  $('p-refs').textContent=S.refs;$('p-total').textContent=S.friends_today+' / '+S.refs;
+  $('p-daily').textContent=fmt(S.max_daily);
+  $('p-total').textContent=S.friends_today+' / '+S.refs;
   const b=Math.floor(S.balance);
-  $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw;
-  $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending):'';
+  $('p-prog').textContent=b+' / '+S.min_withdraw;
+  $('p-pend').textContent=S.pending>0?'(на выводе: '+fmt(S.pending)+')':'';
   const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-  $('fl-cnt').textContent=S.friends_today+' / '+S.friends.length;
-  $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет. Нажми «Пригласить»</div>';  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
+  $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет. Нажми «Пригласить»</div>';
+  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
   $('wd').textContent=b<S.min_withdraw?'Ещё '+(S.min_withdraw-b)+' до вывода':'Вывести '+b;
 }
