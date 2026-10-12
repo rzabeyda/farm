@@ -273,14 +273,34 @@ nav button:active{transform:scale(.93)}
   flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px}
 #out.on{display:flex}
 #out a{display:inline-block;text-decoration:none;color:var(--on);font-weight:800;padding:15px 26px;border-radius:16px;background:var(--grad);box-shadow:0 8px 28px rgba(255,184,0,.5)}
-</style>
+/* ===== игра v2 ===== */
+.hs{margin-bottom:8px;width:100%}.hs .mini{padding:8px 12px}.hs .mini small{font-size:11.5px;margin-bottom:0}.hs .mini b{font-size:18px}
+.claim{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.claim.tap img{width:86px;height:86px}
+.claim.hit img{animation:hit .16s ease-out}@keyframes hit{50%{transform:scale(.86) rotate(-5deg)}}
+.tf{position:absolute;z-index:9;pointer-events:none;font-weight:900;font-size:22px;color:#ffd84d;text-shadow:0 2px 10px rgba(0,0,0,.7);animation:tf .8s ease-out forwards;will-change:transform}
+@keyframes tf{to{transform:translateY(-78px) scale(1.2);opacity:0}}
+.bar i.low{background-image:linear-gradient(90deg,#ff4d4d,#ff9b6b,#ff4d4d)}
+.ucap{padding:12px 14px}.ucap .lbl b{font-size:17px;color:var(--pink)}.mut{margin:8px 0 0;font-size:12.5px;color:var(--dim);line-height:1.45}
+.sec{margin:14px 4px 8px;font-size:12.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.upg{display:flex;align-items:center;gap:12px;padding:11px 12px;margin-bottom:8px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.ui{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);color:#ffc01f}.ui img{width:26px;height:26px}.ui svg{width:24px;height:24px}
+.ut{flex:1;min-width:0}.ut b{display:block;font-size:15px}.ut small{color:var(--dim);font-size:12px}
+.upg .buy{flex:none;border:0;border-radius:13px;padding:10px 12px;font-weight:800;font-size:13.5px;color:var(--on);background:var(--grad);display:flex;align-items:center;gap:5px}.upg .buy img{width:15px;height:15px}
+.upg .buy:disabled{background:rgba(255,255,255,.08);color:var(--dim)}.upg .buy:disabled img{filter:grayscale(1) opacity(.5)}
+nav button{font-size:11px}
+.tl{max-height:46vh;overflow-y:auto;scrollbar-width:none}.tl::-webkit-scrollbar{display:none}
+.tr{display:flex;align-items:center;gap:10px;padding:9px 8px;border-top:1px solid var(--line);font-size:14px;font-weight:600;border-radius:10px}.tr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tr b{color:var(--pink)}
+.tr.me{background:rgba(255,184,0,.1);border-top-color:transparent;box-shadow:inset 0 0 0 1px rgba(255,184,0,.4)}
+i.r1,i.r2,i.r3,i.r0{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-weight:800;font-size:12px;flex:none;background:rgba(255,255,255,.08);color:var(--dim)}
+i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}i.r3{background:linear-gradient(135deg,#f0b27a,#a8641f);color:#2b1400}</style>
 </head>
 <body>
 <div id="app">
   <header>
     <div class="bal">
       <div class="ic"><img src="/static/star.png" width="20" height="20" alt="" draggable="false"></div>
-      <span class="bl">Баланс<br>звёзд</span>
+      <span class="bl">Очки</span>
       <div class="bn"><b id="bal">0</b></div>
     </div>
     <button class="help" id="help" aria-label="Как играть"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9.2a3 3 0 1 1 4.6 2.5c-1 .6-1.6 1.2-1.6 2.3"/><path d="M12 18v.01"/></svg></button>
@@ -292,18 +312,31 @@ nav button:active{transform:scale(.93)}
 
   <main>
     <section class="tab on" id="home">
+      <div class="duo hs">
+        <div class="mini" id="m-profit"><small>Прибыль в час</small><b id="h-profit">0</b></div>
+        <div class="mini" id="m-tap"><small>За тап</small><b id="h-tap">1</b></div>
+      </div>
       <div class="orb" id="orb"><i></i><i></i><i></i>
         <button class="claim" id="claim">
           <img src="/static/star.png" width="50" height="50" alt="" draggable="false">
           <span id="claimTxt">Я не бот!</span>
         </button>
       </div>
-      <div class="title" id="hTitle">Забери свою звезду</div>
-      <div class="sub" id="hSub">Нажимай раз в день и копи Telegram Stars</div>
-      <div class="wcard">
-        <div class="lbl"><span>До вывода <span id="p-pend"></span></span><b id="p-prog">0 / 50</b></div>
+      <div class="title" id="hTitle">Подтверди, что ты не бот</div>
+      <div class="sub" id="hSub"></div>
+      <div class="wcard" id="ecard">
+        <div class="lbl"><span>Энергия</span><b id="e-txt">0 / 0</b></div>
         <div class="bar"><i id="bar"></i></div>
+        <div class="lbl" style="margin-top:6px"><span id="e-note"></span></div>
       </div>
+    </section>
+
+    <section class="tab" id="upg">
+      <div class="card ucap" id="ucap">
+        <div class="lbl"><span>Прибыль в час</span><b id="u-profit">0</b></div>
+        <p class="mut">Улучшения покупаются за очки. Прибыль копится, пока тебя нет в игре (до 3 часов), и начисляется при следующем входе.</p>
+      </div>
+      <div id="u-list"></div>
     </section>
 
     <section class="tab" id="profile">
@@ -313,20 +346,23 @@ nav button:active{transform:scale(.93)}
         <div class="badge" id="badge">Новичок</div>
       </div>
       <div class="duo">
-        <div class="mini"><small>Доход</small><b><em id="p-daily">1</em></b></div>
-        <div class="mini"><small>Друзья</small><b id="p-total">0</b></div>
+        <div class="mini" id="m-friends"><small>Друзья</small><b id="p-friends">0</b></div>
+        <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
       </div>
       <div class="duo">
-        <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
         <div class="mini cta" id="stcard"><small>Статус</small><b id="st-name">VIP</b></div>
+        <div class="mini" id="m-rank"><small>Рейтинг</small><b id="p-rank">—</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
+      <div class="note">Очки — внутриигровая валюта, в Telegram Stars они не обмениваются. Призы сезона выдаются из фонда, который объявляет администратор.</div>
     </section>
   </main>
 
   <nav>
     <button class="on" data-t="home">
-      <img src="/static/star.png" width="23" height="23" alt="" draggable="false">Звёзды</button>
+      <img src="/static/star.png" width="23" height="23" alt="" draggable="false">Игра</button>
+    <button data-t="upg">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11l6-6 6 6M6 19l6-6 6 6"/></svg>Улучшения</button>
     <button data-t="profile">
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/></svg>Профиль</button>
   </nav>
@@ -337,7 +373,7 @@ nav button:active{transform:scale(.93)}
   <div id="out">
     <img src="/static/star.png" width="64" height="64" alt="" draggable="false">
     <div class="title">Открой в Telegram</div>
-    <div class="sub">Звёзды начисляются только внутри Telegram — там мы убеждаемся, что ты не бот.</div>
+    <div class="sub">Игра работает только внутри Telegram: там мы убеждаемся, что ты не бот.</div>
     <a href="https://t.me/freestars5bot" target="_blank">Открыть @freestars5bot</a>
   </div>
 </div>
@@ -346,65 +382,94 @@ nav button:active{transform:scale(.93)}
 const tg=window.Telegram&&Telegram.WebApp;
 if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#000000');tg.setBackgroundColor('#000000');tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}}
 const $=id=>document.getElementById(id);let S=null;
-const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){try{navigator.vibrate(12)}catch(_){}}};
-document.addEventListener('click',e=>{if(e.target.closest('button,.card,.stat,.chip'))hap()});
-const fmt=n=>{const v=Math.round(+n*100)/100;return String(v)};
+const D={pend:0,sending:false,timer:0};
+const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){try{navigator.vibrate(10)}catch(_){}}};
+document.addEventListener('click',e=>{if(e.target.closest('button,.card,.stat,.chip')&&!e.target.closest('#claim'))hap()});
+const sp=n=>String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+const dec=n=>{const v=Math.round(+n*100)/100;return String(v)};
+const fmt=n=>{n=+n;return n>=100?sp(n):dec(n)};
+const fmtS=n=>{n=Math.floor(+n);return n>=1e6?(n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M':n>=1e5?Math.floor(n/1e3)+'K':sp(n)};
+const plural=(n,a,b,c)=>{n=Math.floor(n);const x=n%10,y=n%100;return x===1&&y!==11?a:(x>=2&&x<=4&&(y<12||y>14)?b:c)};
+const escH=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2300)}
-async function api(p){
-  const r=await fetch('/api/'+p,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
-  if(!r.ok)throw new Error(r.status);return r.json();
+async function api(p,body){
+  const h={'X-Init-Data':tg?tg.initData:''};let o={method:'POST',headers:h};
+  if(body){h['Content-Type']='application/json';o.body=JSON.stringify(body)}
+  const r=await fetch('/api/'+p,o);
+  if(!r.ok){const e=new Error(r.status);e.status=r.status;throw e}
+  const j=await r.json();return j;
 }
+function setS(s){S=s;S._t=Date.now()}
 const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
 function closeM(){$('sheet').classList.remove('on')}
 function openM(title,big,text,rows,btn,btn2,btn3){
   $('sh-t').textContent=title;
   $('sh-b').innerHTML=(big?'<div class="big">'+big+'</div>':'')+(text?'<p>'+text+'</p>':'')+(rows||[]).map(r=>'<div class="r"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')
-    +(btn?'<button class="go'+(btn.low?' low':'')+'" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+(btn3?'<button class="go alt" id="sh-go3">'+btn3.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{btn2.f()};if(btn3)$('sh-go3').onclick=()=>{btn3.f()};
+    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+(btn3?'<button class="go alt" id="sh-go3">'+btn3.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{closeM();btn2.f()};if(btn3)$('sh-go3').onclick=()=>{closeM();btn3.f()};
   $('sheet').classList.add('on');
 }
 $('sheet').onclick=e=>{if(e.target.id==='sheet')closeM()};
 function leftTxt(){const n=new Date(),m=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1))-n,h=Math.floor(m/36e5),i=Math.floor(m%36e5/6e4);return h+' ч '+i+' мин'}
 function invite(){
   if(!S)return;
-  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи и получай бесплатные Telegram Stars каждый день!');
+  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи в Free Stars: тапай звезду, копи очки и поднимайся в рейтинге!');
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
-function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+' Звезд)',low:Math.floor(S.balance)<S.min_withdraw,f:doWithdraw},{t:'История выплат',f:mHistory},{t:'Купить VIP',f:mStatus})}
-function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус VIP','+'+fmt(S.status_bonus)],['Активных друзей',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить VIP',f:mStatus})}
-function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Друг приносит тебе +1 звезду только в те дни, когда нажимает «Я не бот». Кто нажимал сегодня или вчера, считается в твоём доходе. Если друг пропустил больше дня, он выпадает, пока не вернётся.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
-function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
-function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
-async function mHistory(){
-  let h=[];try{const r=await fetch('/api/history',{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});h=await r.json()}catch(e){}
-  const st={pending:'В обработке',paid:'Выплачено'};
-  const d=t=>{const x=new Date(t*1000);return x.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+' '+x.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
-  openM('История выплат','',h.length?'':'Пока нет выплат. Накопи минимум '+S.min_withdraw+' звёзд и нажми «Вывести».',h.map(w=>[d(w.created)+' · '+(st[w.status]||w.status),'<span style="color:'+(w.status==='paid'?'#34d399':'var(--pink)')+'">'+Math.floor(w.amount)+'</span>']));
+function goTab(t){
+  document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));
+  document.querySelector('nav button[data-t="'+t+'"]').classList.add('on');$(t).classList.add('on');
 }
-const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond',obsidian:'t-obsidian'};
-function zv(n){const a=Math.floor(n)%10,b=Math.floor(n)%100;return a===1&&b!==11?'Звезда':(a>=2&&a<=4&&(b<12||b>14)?'Звезды':'Звезд')}
-function mStatus(){
-  $('sh-t').textContent='VIP-уровни';
-  $('sh-b').innerHTML='<p>VIP навсегда увеличивает твою награду в день. Покупка за Telegram Stars. Более высокий уровень заменяет предыдущий, оплачивается только разница.</p>'
-   +'<div class="tier t-novice'+(S.status?'':' cur')+'"><div><b>Новичок</b><small>1 Звезда в день</small></div><button class="buy" disabled>'+(S.status?'База':'Ты здесь')+'</button></div>'
-   +S.statuses.map(s=>{const own=S.status===s.key,low=!own&&s.pay<=0;
-     return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>+'+s.bonus+' '+zv(s.bonus)+' в день</small></div>'
-     +'<button class="buy" data-k="'+s.key+'"'+(own||low?' disabled':'')+'>'+(own?'Активен':low?'Ниже':'<img src="/static/star.png" alt="">'+s.pay)+'</button></div>'}).join('')
-   +'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;
-  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=()=>buy(b.dataset.k));
-  $('sheet').classList.add('on');
+/* ---------- живое состояние: энергия, очки ---------- */
+function view(){
+  const dt=(Date.now()-S._t)/1000;
+  const energy=Math.max(0,Math.min(S.max_energy,S.energy+dt*S.regen)-D.pend);
+  const points=S.points+D.pend*S.tap_value+S.profit_h/3600*Math.min(dt,3*3600);
+  return {energy,points};
 }
-async function buy(k){
-  try{
-    const r=await fetch('/api/buy/'+k,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
-    if(!r.ok)throw 0;const {link}=await r.json();
-    if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
-    tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('VIP активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
-  }catch(e){toast('Не удалось создать счёт')}
+function paintLive(){
+  if(!S)return;
+  const v=view();
+  $('bal').textContent=fmtS(v.points);
+  $('e-txt').textContent=Math.floor(v.energy)+' / '+S.max_energy;
+  const pc=Math.min(100,v.energy/S.max_energy*100);
+  $('bar').style.width=pc+'%';$('bar').classList.toggle('low',pc<12);
+  if(document.querySelector('#upg.on'))document.querySelectorAll('.upg .buy[data-cost]').forEach(b=>{b.disabled=v.points<+b.dataset.cost});
 }
-function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить. Нажми кнопку ниже.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:{t:'Вывести '+b,f:doWithdraw},{t:'История выплат',f:mHistory})}
+setInterval(paintLive,250);
+function floatNum(e,txt){
+  const a=$('app'),r=a.getBoundingClientRect();
+  if(a.querySelectorAll('.tf').length>14)return;
+  const f=document.createElement('div');f.className='tf';f.textContent=txt;
+  f.style.left=(e.clientX-r.left+(Math.random()*40-20))+'px';f.style.top=(e.clientY-r.top-30)+'px';
+  a.appendChild(f);setTimeout(()=>f.remove(),800);
+}
+function schedFlush(){if(!D.timer)D.timer=setTimeout(()=>{D.timer=0;flush()},600)}
+async function flush(){
+  if(D.sending||D.pend<=0)return;
+  const n=D.pend;D.pend=0;D.sending=true;
+  try{const s=await api('tap',{n});D.pend=Math.max(0,D.pend);setS(s);renderHome()}
+  catch(e){D.pend+=n;if(e.status===400){try{setS(await api('me'));D.pend=0;renderAll()}catch(_){}}}
+  D.sending=false;if(D.pend>0)schedFlush();
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
+function doTap(e){
+  if(!S||!S.claimed_today)return;
+  const v=view();
+  if(v.energy<1){toast('Энергия закончилась. Она восстанавливается со временем');return}
+  D.pend++;floatNum(e,'+'+dec(S.tap_value));hap('light');schedFlush();
+  const c=$('claim');c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');
+}
+$('claim').addEventListener('pointerdown',e=>{if(S&&S.claimed_today){e.preventDefault();doTap(e)}});
+$('claim').addEventListener('click',async()=>{
+  if(!S||S.claimed_today)return;
+  try{const s=await api('claim');setS(s);D.pend=0;renderAll();burst();
+    try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
+    const bl=$('bal').closest('.bn');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
+    toast('+'+sp(s.reward)+' очков. Энергия полная, тапай!')}
+  catch(e){toast('Ошибка, попробуй ещё раз')}
+});
 function burst(){
   const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
   for(let i=0;i<16;i++){const f=document.createElement('div');f.className='fx';f.innerHTML='<img src=/static/star.png alt= draggable=false>';
@@ -419,78 +484,105 @@ document.addEventListener('pointerdown',e=>{
   d.className='rp';d.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';
   b.appendChild(d);setTimeout(()=>d.remove(),700);
 });
-function animNum(el,to){
-  const from=el._v==null?to:el._v;el._v=to;
-  if(from===to){el.textContent=fmt(to);return}
-  const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1)requestAnimationFrame(f)})(t0);
-}
-function render(){
-  animNum($('bal'),S.balance);
+/* ---------- отрисовка ---------- */
+const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond',obsidian:'t-obsidian'};
+function renderHome(){
   const done=S.claimed_today;
-  $('claim').classList.toggle('done',done);$('orb').classList.toggle('off',done);
-  $('claimTxt').textContent=done?'Приходи завтра':'Я не бот!';
-  $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
-  $('hSub').textContent=done?'Следующая звезда через '+leftTxt():'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
-  
-  $('p-daily').textContent=fmt(S.max_daily);
-  $('p-total').textContent=S.friends_today+' / '+S.refs;
-  const b=Math.floor(S.balance);
-  $('p-prog').textContent=b+' / '+S.min_withdraw;
-  $('p-pend').textContent=S.pending>0?'(на выводе: '+fmt(S.pending)+')':'';
+  $('claim').classList.toggle('tap',done);$('orb').classList.toggle('off',false);
+  $('claimTxt').textContent=done?'':'Я не бот!';
+  $('hTitle').textContent=done?'Тапай звезду!':'Подтверди, что ты не бот';
+  $('hSub').textContent=done?('+'+dec(S.tap_value)+' за тап · прибыль '+fmt(S.profit_h)+' в час'):('Нажми и получи +'+sp(S.checkin_reward)+' очков и полную энергию');
+  $('h-profit').textContent='+'+fmt(S.profit_h);$('h-tap').textContent='+'+dec(S.tap_value);
+  $('e-note').textContent=done?'Новая проверка через '+leftTxt():'Проверка «Я не бот» откроет тапы на сегодня';
+  paintLive();
+}
+function upgIcon(k){
+  if(k==='profit')return '<img src="/static/star.png" alt="">';
+  const p={tap:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',energy:'<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M7 12h6"/>',regen:'<path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/>'}[k];
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+}
+function renderUpg(){
+  $('u-profit').textContent='+'+fmt(S.profit_h)+' / ч';
+  const sec=(title,list)=>'<div class="sec">'+title+'</div>'+list.map(u=>{
+    const max=u.cost==null;
+    return '<div class="upg"><div class="ui">'+upgIcon(u.kind)+'</div><div class="ut"><b>'+u.name+'</b><small>Ур. '+u.level+' · +'+dec(u.step)+' '+u.unit+' за уровень</small></div>'
+     +(max?'<button class="buy" disabled>МАКС</button>':'<button class="buy" data-k="'+u.key+'" data-cost="'+u.cost+'"><img src="/static/star.png" alt="">'+fmtS(u.cost)+'</button>')+'</div>'}).join('');
+  $('u-list').innerHTML=sec('Пассивная прибыль',S.upgrades.filter(u=>u.kind==='profit'))+sec('Тапы и энергия',S.upgrades.filter(u=>u.kind!=='profit'));
+  document.querySelectorAll('.upg .buy[data-k]').forEach(b=>b.onclick=()=>buyUpg(b.dataset.k));
+  paintLive();
+}
+async function buyUpg(k){
+  try{const s=await api('upgrade/'+k);const u=s.upgrades.find(x=>x.key===k);setS(s);renderAll();toast(u.name+': уровень '+u.level);try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}
+  catch(e){toast(e.status===400?'Не хватает очков':'Ошибка, попробуй ещё раз')}
+}
+function renderProfile(){
   const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-  $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+(f.days<S.ref_min_days?' <small class="pg">день '+f.days+' из '+S.ref_min_days+'</small>':'')+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
-  $('sk-n').textContent=S.streak+' '+(S.streak%10===1&&S.streak%100!==11?'день':(S.streak%10>=2&&S.streak%10<=4&&(S.streak%100<12||S.streak%100>14)?'дня':'дней'));
-  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'VIP';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:' cta');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
+  $('p-friends').textContent=S.friends.length;
+  $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+escH(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
+  $('sk-n').textContent=S.streak+' '+plural(S.streak,'день','дня','дней');
+  const cs=S.statuses.find(x=>x.key===S.status);
+  $('st-name').textContent=cs?cs.name:'VIP';$('st-name').className=cs?SCOL[cs.key]:'';
+  $('stcard').className='mini'+(cs?' s-'+cs.key:' cta');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
-  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
 }
-$('claim').onclick=async()=>{
-  if(S&&S.claimed_today){mTomorrow();return}
-  try{S=await api('claim');render();burst();
-    try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
-    const bl=$('bal').closest('.bn');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
-    toast('+'+fmt(S.reward)+' получено!')}
-  catch(e){toast('Ошибка, попробуй ещё раз')}
-};
-function doWithdraw(){
-  if(Math.floor(S.balance)<S.min_withdraw){mWithdraw();return}
-  const go=async()=>{try{S=await api('withdraw');render();toast('Заявка на вывод создана')}catch(e){toast('Не удалось вывести')}};
-  tg&&tg.showConfirm?tg.showConfirm('Вывести '+Math.floor(S.balance)+' звёзд?',ok=>ok&&go()):go();
+function renderAll(){renderHome();renderUpg();renderProfile()}
+/* ---------- окна ---------- */
+function mBalance(){openM('Твои очки',fmt(S.points),'Очки копятся за тапы, проверку «Я не бот» и прибыль в час. В Telegram Stars они не обмениваются.',[['Прибыль в час','+'+fmt(S.profit_h)],['За тап','+'+dec(S.tap_value)],['Множитель VIP','×'+dec(S.mult)],['Серия дней',S.streak]],{t:'Улучшения',f:()=>goTab('upg')},{t:'Рейтинг сезона',f:mRating},{t:'Купить VIP',f:mStatus})}
+function mProfit(){openM('Прибыль в час','+'+fmt(S.profit_h),'Улучшения из раздела «Улучшения» дают очки каждый час, даже когда тебя нет в игре. Копится до 3 часов, начисляется при следующем входе.',[['Множитель VIP','×'+dec(S.mult)]],{t:'К улучшениям',f:()=>goTab('upg')},{t:'Купить VIP',f:mStatus})}
+function mTap(){openM('За тап','+'+dec(S.tap_value),'Столько очков даёт каждое нажатие на звезду. Тапы тратят энергию, а она восстанавливается со временем ('+dec(S.regen)+' в секунду).',[['Энергия',Math.floor(view().energy)+' / '+S.max_energy],['Множитель VIP','×'+dec(S.mult)]],{t:'К улучшениям',f:()=>goTab('upg')})}
+function mEnergy(){openM('Энергия',Math.floor(view().energy)+' / '+S.max_energy,'Каждый тап тратит 1 энергию. Она восстанавливается сама: '+dec(S.regen)+' в секунду. Ежедневная проверка «Я не бот» заряжает её полностью.',[['Максимум',S.max_energy],['Восстановление',dec(S.regen)+' / сек']],{t:'К улучшениям',f:()=>goTab('upg')})}
+function mFriends(){openM('Друзья',S.friends.length,'Когда друг в первый раз пройдёт проверку «Я не бот», ты получишь <b>+'+sp(S.ref_bonus)+' очков</b>, а он стартовые <b>+500</b>. В списке зелёная галочка у тех, кто прошёл проверку сегодня, красный крестик у остальных.',[['Прошли сегодня',S.friends_today],['Всего друзей',S.friends.length]],INVB)}
+function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Проходи проверку «Я не бот» каждый день. С каждым днём серии награда за проверку растёт (до 10 дней). Пропустил день, серия начнётся заново.',[['Награда за следующую проверку','+'+sp(S.checkin_reward)],['Сегодня',S.claimed_today?'пройдена':'ещё нет']],S.claimed_today?INVB:null)}
+function mStatus(){
+  $('sh-t').textContent='VIP-уровни';
+  $('sh-b').innerHTML='<p>VIP навсегда умножает все получаемые очки: за тапы, проверку и прибыль в час. Оплата в Telegram Stars. Более высокий уровень заменяет предыдущий, платится только разница.</p>'
+   +'<div class="tier t-novice'+(S.status?'':' cur')+'"><div><b>Новичок</b><small>Очки ×1</small></div><button class="buy" disabled>'+(S.status?'База':'Ты здесь')+'</button></div>'
+   +S.statuses.map(s=>{const own=S.status===s.key,low=!own&&s.pay<=0;
+     return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>Очки ×'+dec(s.mult)+'</small></div>'
+     +'<button class="buy" data-k="'+s.key+'"'+(own||low?' disabled':'')+'>'+(own?'Активен':low?'Ниже':'<img src="/static/star.png" alt="">'+s.pay)+'</button></div>'}).join('')
+   +'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;
+  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=()=>buy(b.dataset.k));
+  $('sheet').classList.add('on');
 }
-$('inv').onclick=invite;
-$('bal').closest('.bal').onclick=()=>S&&mBalance();
-$('stcard').onclick=()=>S&&mStatus();
-$('badge').onclick=()=>S&&mStatus();
-$('streak').onclick=()=>S&&mStreak();
-document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
-document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
-document.querySelector('.wcard').onclick=()=>S&&mBalance();
-setInterval(()=>{
-  if(!S||!S.claimed_today)return;
-  const d=new Date().toISOString().slice(0,10);
-  if(S.today&&d!==S.today){api('me').then(s=>{S=s;render()}).catch(()=>{});return}
-  $('hSub').textContent='Следующая звезда через '+leftTxt();
-},30000);
+async function buy(k){
+  try{
+    const link=(await api('buy/'+k)).link;
+    if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
+    tg.openInvoice(link,async st=>{if(st==='paid'){closeM();setS(await api('me'));renderAll();toast('VIP активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
+  }catch(e){toast('Не удалось создать счёт')}
+}
+async function mRating(){
+  let r=null;try{r=await api('rating')}catch(e){toast('Не удалось загрузить рейтинг');return}
+  $('sh-t').textContent='Рейтинг сезона';
+  $('sh-b').innerHTML='<p>'+escH(r.prize)+'</p>'+(r.season_start?'<p style="margin-top:-6px">Сезон идёт с '+escH(r.season_start)+'. Призы не гарантируются.</p>':'')
+   +(r.top.length?'<div class="tl">'+r.top.map((x,i)=>'<div class="tr'+(x.me?' me':'')+'"><i class="r'+(i<3?i+1:0)+'">'+(i+1)+'</i><span>'+escH(x.name)+(x.me?' (ты)':'')+'</span><b>'+sp(x.value)+'</b></div>').join('')+'</div>':'<p>Пока никого. Стань первым!</p>')
+   +(r.rank&&r.rank>20?'<p style="margin:10px 0 0">Твоё место: '+r.rank+' ('+sp(r.my)+' очков)</p>':'')
+   +'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;$('sheet').classList.add('on');
+  return r;
+}
+async function loadRank(){try{const r=await api('rating');$('p-rank').textContent=r.rank?'#'+r.rank:'—'}catch(e){}}
 function mInfo(){
-  const st=S?S.statuses.map(s=>s.name+' (+'+s.bonus+' в день, '+s.price+' звёзд)').join(', '):'';
+  const st=S?S.statuses.map(s=>s.name+' ×'+dec(s.mult)).join(', '):'';
   $('sh-t').textContent='Как играть';
   $('sh-b').innerHTML='<div class="tl">'
-   +'<div class="inf"><h4>1. Забирай звезду</h4><p>Раз в день нажимай большую кнопку <b>«Я не бот!»</b> и получай <b>1 звезду</b>. Следующая будет доступна после 00:00 по UTC (03:00 по Москве). Бот напомнит, если забудешь.</p></div>'
-   +'<div class="inf"><h4>2. Приглашай друзей</h4><p>Нажми <b>«Пригласить»</b> и отправь ссылку. Друг должен нажимать «Я не бот» каждый день: за каждый его клик ты получаешь <b>+1 звезду</b>. Кто нажал сегодня, видно в профиле по зелёной галочке, кто нет, по красному крестику. Если друг пропустил больше дня, он перестаёт считаться в твоём доходе.</p></div>'
-   +'<div class="inf"><h4>3. Стрик</h4><p>Заходи каждый день подряд. Если пропустить день, серия начнётся заново.</p></div>'
-   +'<div class="inf"><h4>4. VIP</h4><p>VIP навсегда увеличивает твою награду в день: '+st+'. Более высокий уровень заменяет прежний, платится только разница. Оплата в Telegram Stars.</p></div>'
-   +'<div class="inf"><h4>5. Вывод</h4><p>Накопи минимум <b>'+(S?S.min_withdraw:50)+' звёзд</b> и нажми <b>«Вывести»</b>. Заявка попадёт к админу, выплата вручную. Статус заявок смотри в «История выплат».</p></div>'
+   +'<div class="inf"><h4>1. Подтверди, что ты не бот</h4><p>Раз в день нажми большую кнопку <b>«Я не бот!»</b>. Ты получишь очки, а энергия зарядится полностью. Новая проверка доступна после 00:00 по UTC (03:00 по Москве). С каждым днём серии награда растёт.</p></div>'
+   +'<div class="inf"><h4>2. Тапай звезду</h4><p>После проверки жми на звезду: каждый тап даёт очки и тратит энергию. Энергия восстанавливается со временем.</p></div>'
+   +'<div class="inf"><h4>3. Улучшения</h4><p>В разделе «Улучшения» за очки покупаются карточки: больше очков за тап, больше энергии, быстрее зарядка и <b>прибыль в час</b>, которая копится, пока тебя нет (до 3 часов).</p></div>'
+   +'<div class="inf"><h4>4. Друзья</h4><p>Нажми «Пригласить». Когда друг впервые пройдёт проверку, ты получишь <b>+'+sp(S?S.ref_bonus:1000)+' очков</b>.</p></div>'
+   +'<div class="inf"><h4>5. VIP</h4><p>VIP навсегда умножает все получаемые очки: '+st+'. Оплата в Telegram Stars. VIP даёт игровые преимущества, а не Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>6. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Очки в Stars не обмениваются, призы не гарантируются, условия объявляет администратор. Смотри «Рейтинг» в профиле.</p></div>'
    +'</div><button class="go" id="sh-go">Показать обучение</button><button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;$('sh-go').onclick=()=>{closeM();showOb()};
   $('sheet').classList.add('on');
 }
-$('help').onclick=()=>S&&mInfo();
+/* ---------- онбординг ---------- */
 const OB=[
- {t:'Забирай звезду каждый день',s:'Нажми <b>«Я не бот!»</b> раз в день и получи <b>1 звезду</b> Telegram Stars.',i:'<img src="/static/star.png" alt="">'},
- {t:'Приглашай друзей',s:'Друг должен нажимать <b>«Я не бот!»</b> каждый день: за каждый его клик ты получаешь <b>+1 звезду</b>. Кто пропустил день, звёзд не приносит.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c.6-3.7 3.2-5.6 6.5-5.6s5.9 1.9 6.5 5.6"/><path d="M17.5 8.5v6M14.5 11.5h6"/></svg>'},
- {t:'Покупай VIP',s:()=>S?'<b>'+S.statuses.map(x=>x.name+' +'+x.bonus).join(', ')+'</b> звёзд к награде каждый день, навсегда. Оплата в Telegram Stars.':'VIP навсегда увеличивает награду за каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
- {t:'Выводи звёзды',s:'Накопи минимум и нажми <b>«Вывести»</b>. Заявка придёт админу, статус смотри в истории выплат.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg>'}
+ {t:'Подтверди, что ты не бот',s:'Раз в день нажимай <b>«Я не бот!»</b>: получишь очки и полную энергию.',i:'<img src="/static/star.png" alt="">'},
+ {t:'Тапай и копи очки',s:'Жми на звезду, пока есть энергия. Улучшения увеличивают очки за тап и дают <b>прибыль в час</b>, даже когда тебя нет.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>'},
+ {t:'Друзья и VIP',s:()=>'Друг, впервые прошедший проверку, даёт тебе <b>+'+sp(S?S.ref_bonus:1000)+' очков</b>. VIP умножает все очки: <b>'+(S?S.statuses.map(x=>x.name+' ×'+dec(x.mult)).join(', '):'до ×3')+'</b>.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
+ {t:'Рейтинг и призы',s:'Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Очки в Stars не обмениваются.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>'}
 ];
 let obI=0;
 function obDraw(){
@@ -502,14 +594,30 @@ function obDraw(){
   $('ob-skip').style.visibility=obI===OB.length-1?'hidden':'visible';
 }
 function showOb(){obI=0;obDraw();$('ob').classList.add('on')}
-function hideOb(){$('ob').classList.remove('on');try{localStorage.setItem('fs_ob','1')}catch(e){}}
+function hideOb(){$('ob').classList.remove('on');try{localStorage.setItem('fs_ob2','1')}catch(e){}}
 $('ob-next').onclick=()=>{if(obI<OB.length-1){obI++;obDraw()}else hideOb()};
 $('ob-skip').onclick=hideOb;
-function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob')==='1'}catch(e){}if(!seen)showOb()}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));
-  b.classList.add('on');$(b.dataset.t).classList.add('on');
-});
+function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob2')==='1'}catch(e){}if(!seen)showOb()}
+/* ---------- события ---------- */
+$('inv').onclick=invite;
+$('help').onclick=()=>S&&mInfo();
+$('bal').closest('.bal').onclick=()=>S&&mBalance();
+$('m-profit').onclick=()=>S&&mProfit();
+$('m-tap').onclick=()=>S&&mTap();
+$('ecard').onclick=()=>S&&mEnergy();
+$('m-friends').onclick=()=>S&&mFriends();
+$('streak').onclick=()=>S&&mStreak();
+$('stcard').onclick=()=>S&&mStatus();
+$('badge').onclick=()=>S&&mStatus();
+$('m-rank').onclick=()=>S&&mRating();
+$('ucap').onclick=()=>S&&mProfit();
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
+setInterval(()=>{
+  if(!S)return;
+  const d=new Date().toISOString().slice(0,10);
+  if(S.today&&d!==S.today&&!D.sending){api('me').then(s=>{setS(s);renderAll()}).catch(()=>{});return}
+  if(S.claimed_today)$('e-note').textContent='Новая проверка через '+leftTxt();
+},30000);
 const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;
 if(u){
   $('uname').textContent=u.first_name||u.username||'Гость';$('uid').textContent=u.username?'@'+u.username:'ID '+u.id;
@@ -517,7 +625,7 @@ if(u){
   else $('ava').textContent=(u.first_name||'?')[0].toUpperCase();
 }
 if(!tg||!tg.initData){$('out').classList.add('on')}
-else api('me').then(s=>{S=s;render();maybeOb()}).catch(()=>toast('Ошибка загрузки'));
+else api('me').then(s=>{setS(s);renderAll();maybeOb();loadRank()}).catch(()=>toast('Ошибка загрузки'));
 </script>
 </body>
 </html>

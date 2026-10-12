@@ -1,4 +1,4 @@
-import asyncio, glob, hashlib, hmac, json, os, shutil, sqlite3, time
+import asyncio, glob, hashlib, hmac, json, os, sqlite3, time
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl
@@ -6,33 +6,27 @@ from urllib.parse import parse_qsl
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
-from aiogram.types import (FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
-                           CallbackQuery, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
+from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice,
+                           MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+import game
+from game import STATUSES, UPGRADES
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "freestars5bot")
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://freestars.zabeyda.lol")
 ADMIN_ID = int(os.environ.get("ADMIN_ID") or 0)
-MIN_WITHDRAW = int(os.environ.get("MIN_WITHDRAW", 50))
 HERE = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(HERE, "freestars.db")
+DB_PATH = os.environ.get("DB_PATH") or os.path.join(HERE, "freestars.db")
 REMIND_HOUR = int(os.environ.get("REMIND_HOUR_UTC", 9))   # 12:00 по Москве
 BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
-BASE_REWARD = 1.0
-# VIP-уровни за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
-STATUSES = {
-    "gold": (25, 1, "Gold"),
-    "platinum": (100, 5, "Platinum"),
-    "diamond": (500, 25, "Diamond"),
-    "obsidian": (1000, 50, "Obsidian"),
-}
-REF_MIN_DAYS = 1  # друг начинает приносить бонус после стольких дней, в которые он нажал кнопку
-REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
+DEFAULT_PRIZE = "Лучшие игроки сезона получают призы в Telegram Stars из призового фонда. Размер фонда и условия объявляет администратор."
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
@@ -58,27 +52,28 @@ def init_db():
         CREATE TABLE IF NOT EXISTS payments(
           charge_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, status TEXT NOT NULL,
           amount INTEGER NOT NULL, created INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+        CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id));
         """)
-        try:
-            c.execute("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''")
-        except sqlite3.OperationalError:
-            pass
-        c.execute("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT)")
-        c.execute("CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id))")
-        for ddl in ("ALTER TABLE users ADD COLUMN last_remind TEXT",
-                    "ALTER TABLE users ADD COLUMN remind_off INTEGER NOT NULL DEFAULT 0"):
+        for ddl in ("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''",
+                    "ALTER TABLE users ADD COLUMN last_remind TEXT",
+                    "ALTER TABLE users ADD COLUMN remind_off INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN claim_days INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN earned REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN season_points REAL NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN energy REAL",
+                    "ALTER TABLE users ADD COLUMN energy_ts REAL",
+                    "ALTER TABLE users ADD COLUMN profit_ts REAL",
+                    "ALTER TABLE users ADD COLUMN last_tap_ts REAL",
+                    "ALTER TABLE users ADD COLUMN upg TEXT NOT NULL DEFAULT '{}'"):
             try:
                 c.execute(ddl)
             except sqlite3.OperationalError:
                 pass
         try:
-            c.execute("ALTER TABLE users ADD COLUMN claim_days INTEGER NOT NULL DEFAULT 0")
-            c.execute("UPDATE users SET claim_days=MAX(streak,1) WHERE last_claim IS NOT NULL")
-        except sqlite3.OperationalError:
-            pass
-        try:
-            c.execute("ALTER TABLE users ADD COLUMN earned REAL NOT NULL DEFAULT 0")
-            c.execute("UPDATE users SET earned=balance")
+            c.execute("ALTER TABLE users ADD COLUMN points REAL NOT NULL DEFAULT 0")
+            # прежние накопленные звёзды превращаются в очки (1 звезда = 100 очков)
+            c.execute("UPDATE users SET points=balance*100, season_points=balance*100")
         except sqlite3.OperationalError:
             pass
         c.commit()
@@ -86,6 +81,10 @@ def init_db():
 
 def today():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def yesterday():
+    return datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
 
 
 def ensure_user(c, uid, username, first_name, ref=None):
@@ -103,13 +102,12 @@ def touch(c, uid):
     c.execute("INSERT OR IGNORE INTO activity(day,user_id) VALUES(?,?)", (today(), uid))
 
 
-async def notify_new(u, tag=None):
+async def notify_new(u):
     if not ADMIN_ID or u["id"] == ADMIN_ID:
         return
     who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
-    text = f"Новый юзер {who}"
     try:
-        await bot.send_message(ADMIN_ID, text)
+        await bot.send_message(ADMIN_ID, f"Новый юзер {who}")
     except Exception as e:
         print("notify new:", e)
 
@@ -137,11 +135,9 @@ def verify_init_data(init_data: str) -> dict:
         raise HTTPException(401, "bad auth")
 
 
-def rate(c, uid):
-    yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
-    # активный друг = нажимал кнопку сегодня или вчера; пропустил дальше - не приносит и не считается в доходе
-    n = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND last_claim>=?", (uid, yday)).fetchone()[0]
-    return n, BASE_REWARD + status_bonus(c, uid)
+def user_from(init_data):
+    d = verify_init_data(init_data)
+    return d["user"], parse_ref(d.get("start_param"))
 
 
 def status_of(c, uid):
@@ -149,35 +145,47 @@ def status_of(c, uid):
     return r["status"] if r and r["status"] in STATUSES else ""
 
 
-def status_bonus(c, uid):
-    s = status_of(c, uid)
-    return STATUSES[s][1] if s else 0
-
-
 def status_price(c, uid, key):
     cur = status_of(c, uid)
     return STATUSES[key][0] - (STATUSES[cur][0] if cur else 0)
 
 
-def state(c, uid):
+def _name(r):
+    return r["first_name"] or (r["username"] and "@" + r["username"]) or f"id {r['id']}"
+
+
+def state(c, uid, now=None):
+    now = now or time.time()
     u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
-    n, daily = rate(c, uid)
-    total = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=?", (uid,)).fetchone()[0]
-    ftoday = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND last_claim=?", (uid, today())).fetchone()[0]
-    fr = [{"name": (f["username"] and "@" + f["username"]) or f["first_name"] or f"id {f['id']}", "done": f["last_claim"] == today(), "days": f["claim_days"]}
-          for f in c.execute("SELECT id,username,first_name,last_claim,claim_days FROM users WHERE referrer_id=? ORDER BY (last_claim=?) DESC, created", (uid, today()))]
-    yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
-    streak = u["streak"] if u["last_claim"] in (today(), yday) else 0
-    pend = c.execute("SELECT COALESCE(SUM(amount),0) FROM withdrawals WHERE user_id=? AND status='pending'",
-                     (uid,)).fetchone()[0]
+    st = game.stats(u)
+    energy = game.current_energy(u, st, now)
+    t, y = today(), yesterday()
+    streak = u["streak"] if u["last_claim"] in (t, y) else 0
+    claimed = u["last_claim"] == t
+    nxt = streak + 1
+    friends = [{"name": _name(f), "done": f["last_claim"] == t}
+               for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
+                                  "ORDER BY (last_claim=?) DESC, created", (uid, t))]
+    refs_active = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
+    ups = []
+    for k, d in UPGRADES.items():
+        lvl = st["levels"][k]
+        ups.append({"key": k, "name": d["name"], "kind": d["kind"], "level": lvl, "max": d["max"], "step": d["step"],
+                    "unit": d["unit"], "cost": game.upgrade_cost(k, lvl) if lvl < d["max"] else None})
     return {
-        "balance": round(u["balance"], 4), "daily": daily, "max_daily": round(daily + REF_BONUS * n, 4), "refs": n, "refs_total": total,
-        "friends_today": ftoday, "friends": fr,
-        "claimed_today": u["last_claim"] == today(), "streak": streak, "today": today(),
-        "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4), "ref_min_days": REF_MIN_DAYS,
-        "status": status_of(c, uid), "status_bonus": status_bonus(c, uid),
-        "statuses": [{"key": k, "name": v[2], "price": v[0], "bonus": v[1], "pay": status_price(c, uid, k)}
+        "points": round(u["points"], 2),
+        "profit_h": round(st["profit"] * st["mult"], 2),
+        "tap_value": round(st["tap"] * st["mult"], 2),
+        "energy": round(energy, 1), "max_energy": st["max_energy"], "regen": st["regen"], "mult": st["mult"],
+        "claimed_today": claimed, "streak": streak, "today": t,
+        "checkin_reward": game.checkin_reward(nxt, st["mult"]),
+        "friends": friends, "friends_today": sum(1 for f in friends if f["done"]), "refs": refs_active,
+        "ref_bonus": game.REF_BONUS_INVITER,
+        "status": status_of(c, uid),
+        "statuses": [{"key": k, "name": v[2], "price": v[0], "mult": v[1], "pay": status_price(c, uid, k)}
                      for k, v in STATUSES.items()],
+        "upgrades": ups,
+        "season_points": round(u["season_points"], 2),
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
     }
 
@@ -206,10 +214,10 @@ async def send_backup():
     return path
 
 
-def meta_get(k):
+def meta_get(k, default=None):
     with closing(db()) as c:
         r = c.execute("SELECT v FROM meta WHERE k=?", (k,)).fetchone()
-        return r["v"] if r else None
+        return r["v"] if r else default
 
 
 def meta_set(k, v):
@@ -228,10 +236,10 @@ async def run_reminders():
             "AND ((last_claim IS NULL AND created>=?) OR last_claim>=?)",
             (t, t, int(time.time()) - 3 * 86400, week_ago)).fetchall()
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Забрать звезду", web_app=WebAppInfo(url=WEBAPP_URL))]])
+        InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     sent = blocked = 0
     for u in users:
-        text = "Твоя звезда за сегодня ждёт. Нажми «Я не бот» и забери её."
+        text = "Твои очки ждут. Зайди, нажми «Я не бот» и заряди энергию."
         if u["streak"] and u["last_claim"]:
             text += f"\nСерия {u['streak']} дн. — не потеряй её."
         text += "\nОтключить напоминания: /stop"
@@ -278,7 +286,7 @@ async def lifespan(_):
     init_db()
     try:
         await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="Звёзды", web_app=WebAppInfo(url=WEBAPP_URL)))
+            menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL)))
     except Exception as e:
         print("menu button:", e)
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
@@ -292,17 +300,15 @@ async def lifespan(_):
 app = FastAPI(lifespan=lifespan)
 
 
-def user_from(init_data):
-    d = verify_init_data(init_data)
-    return d["user"], parse_ref(d.get("start_param"))
-
-
 @app.post("/api/me")
 async def api_me(x_init_data: str = Header()):
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
         new = ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
         touch(c, u["id"])
+        c.commit()
+        c.execute("BEGIN IMMEDIATE")
+        game.settle(c, u["id"])
         c.commit()
         s = state(c, u["id"])
     if new:
@@ -312,63 +318,108 @@ async def api_me(x_init_data: str = Header()):
 
 @app.post("/api/claim")
 async def api_claim(x_init_data: str = Header()):
+    """Ежедневная проверка «Я не бот»: награда очками, полная энергия, открывает тапы на сегодня."""
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
         new = ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
         touch(c, u["id"])
         c.commit()
         c.execute("BEGIN IMMEDIATE")
+        game.settle(c, u["id"])
         row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         t = today()
         if row["last_claim"] == t:
             c.rollback()
             raise HTTPException(400, "already")
-        _, daily = rate(c, u["id"])
-        yesterday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
-        streak = row["streak"] + 1 if row["last_claim"] == yesterday else 1
-        c.execute("UPDATE users SET balance=balance+?, earned=earned+?, last_claim=?, streak=? WHERE id=?",
-                  (daily, daily, t, streak, u["id"]))
-        days = row["claim_days"] + 1
-        c.execute("UPDATE users SET claim_days=? WHERE id=?", (days, u["id"]))
-        if row["referrer_id"] and days >= REF_MIN_DAYS:
+        streak = row["streak"] + 1 if row["last_claim"] == yesterday() else 1
+        st = game.stats(row)
+        reward = game.checkin_reward(streak, st["mult"])
+        first = row["claim_days"] == 0
+        friend_bonus = game.REF_BONUS_FRIEND if (first and row["referrer_id"]) else 0
+        c.execute("UPDATE users SET points=points+?, season_points=season_points+?, last_claim=?, streak=?, "
+                  "claim_days=claim_days+1, energy=?, energy_ts=? WHERE id=?",
+                  (reward + friend_bonus, reward + friend_bonus, t, streak, st["max_energy"], time.time(), u["id"]))
+        if first and row["referrer_id"]:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
-            c.execute("UPDATE users SET balance=balance+?, earned=earned+? WHERE id=?", (REF_BONUS, REF_BONUS, row["referrer_id"]))
+            c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?",
+                      (game.REF_BONUS_INVITER, game.REF_BONUS_INVITER, row["referrer_id"]))
         c.commit()
         s = state(c, u["id"])
-        s["reward"] = daily
+        s["reward"] = reward + friend_bonus
     if new:
         await notify_new(u)
     return s
 
 
-@app.post("/api/withdraw")
-async def api_withdraw(x_init_data: str = Header()):
+class TapIn(BaseModel):
+    n: int
+
+
+@app.post("/api/tap")
+def api_tap(body: TapIn, x_init_data: str = Header()):
     u, _ = user_from(x_init_data)
+    n = max(0, min(body.n, game.MAX_TAPS_PER_REQ))
     with closing(db()) as c:
         c.execute("BEGIN IMMEDIATE")
         row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
         if not row:
             c.rollback()
             raise HTTPException(404)
-        amount = int(row["balance"])
-        if amount < MIN_WITHDRAW:
+        if row["last_claim"] != today():
             c.rollback()
-            raise HTTPException(400, f"min {MIN_WITHDRAW}")
-        c.execute("UPDATE users SET balance=balance-? WHERE id=?", (amount, u["id"]))
-        cur = c.execute("INSERT INTO withdrawals(user_id,amount,created) VALUES(?,?,?)",
-                        (u["id"], amount, int(time.time())))
+            raise HTTPException(400, "checkin")
+        game.settle(c, u["id"])
+        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+        st = game.stats(row)
+        now = time.time()
+        last = row["last_tap_ts"] or now - 1
+        n = min(n, int(game.MAX_TAPS_PER_SEC * max(0.0, now - last)) + 5, int(row["energy"]))
+        gain = n * st["tap"] * st["mult"]
+        if n > 0:
+            c.execute("UPDATE users SET points=points+?, season_points=season_points+?, energy=energy-?, last_tap_ts=? WHERE id=?",
+                      (gain, gain, n, now, u["id"]))
         c.commit()
         s = state(c, u["id"])
-        wid = cur.lastrowid
-    if ADMIN_ID:
-        try:
-            who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name', '')} (нет username)"
-            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-                text=f"Выплачено #{wid}", callback_data=f"pay:{wid}")]])
-            await bot.send_message(ADMIN_ID, f"{who} запрос {amount} Stars\n#{wid} · id {u['id']}", reply_markup=kb)
-        except Exception as e:
-            print("withdraw notify:", e)
-    return s
+        s["gained"] = round(gain, 2)
+        return s
+
+
+@app.post("/api/upgrade/{key}")
+def api_upgrade(key: str, x_init_data: str = Header()):
+    if key not in UPGRADES:
+        raise HTTPException(404)
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        game.settle(c, u["id"])
+        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+        lv = game.levels_of(row)
+        if lv[key] >= UPGRADES[key]["max"]:
+            c.rollback()
+            raise HTTPException(400, "max")
+        cost = game.upgrade_cost(key, lv[key])
+        if row["points"] < cost:
+            c.rollback()
+            raise HTTPException(400, "points")
+        lv[key] += 1
+        c.execute("UPDATE users SET points=points-?, upg=? WHERE id=?", (cost, json.dumps(lv), u["id"]))
+        c.commit()
+        return state(c, u["id"])
+
+
+@app.post("/api/rating")
+def api_rating(x_init_data: str = Header()):
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"]}
+               for r in c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
+                                  "ORDER BY season_points DESC, id LIMIT 20")]
+        me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
+        rank = None
+        if me and me["season_points"] > 0:
+            rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>?", (me["season_points"],)).fetchone()[0]
+    return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0,
+            "season_start": meta_get("season_start") or "", "prize": meta_get("prize") or DEFAULT_PRIZE}
 
 
 @app.post("/api/buy/{key}")
@@ -385,7 +436,7 @@ async def api_buy(key: str, x_init_data: str = Header()):
         pay = status_price(c, u["id"], key)
     name = STATUSES[key][2]
     link = await bot.create_invoice_link(
-        title=f"VIP {name}", description=f"+{STATUSES[key][1]} звезд к доходу каждый день, навсегда",
+        title=f"VIP {name}", description=f"Все получаемые очки ×{STATUSES[key][1]:g}, навсегда",
         payload=f"status:{key}:{u['id']}", currency="XTR", prices=[LabeledPrice(label=f"VIP {name}", amount=pay)])
     return {"link": link}
 
@@ -415,7 +466,7 @@ async def paid_status(m: Message):
                   (sp.telegram_payment_charge_id, uid, key, sp.total_amount, int(time.time())))
         c.execute("UPDATE users SET status=? WHERE id=?", (key, uid))
         c.commit()
-    await m.answer(f"VIP {STATUSES[key][2]} активирован: +{STATUSES[key][1]} звезд к доходу каждый день")
+    await m.answer(f"VIP {STATUSES[key][2]} активирован: все очки ×{STATUSES[key][1]:g}")
     if ADMIN_ID:
         try:
             await bot.send_message(ADMIN_ID, f"Покупка VIP {STATUSES[key][2]}: {sp.total_amount} звёзд от id {uid}")
@@ -423,39 +474,7 @@ async def paid_status(m: Message):
             pass
 
 
-@app.post("/api/history")
-def api_history(x_init_data: str = Header()):
-    u, _ = user_from(x_init_data)
-    with closing(db()) as c:
-        rows = c.execute("SELECT id,amount,status,created FROM withdrawals WHERE user_id=? ORDER BY id DESC LIMIT 50",
-                         (u["id"],)).fetchall()
-    return [{"id": r["id"], "amount": r["amount"], "status": r["status"], "created": r["created"]} for r in rows]
-
-
-@dp.message(Command("paid"))
-async def paid(m: Message, command: CommandObject):
-    if not ADMIN_ID or m.from_user.id != ADMIN_ID:
-        return
-    if not (command.args or "").strip().isdigit():
-        await m.answer("Использование: /paid НОМЕР_ЗАЯВКИ")
-        return
-    wid = int(command.args.strip())
-    with closing(db()) as c:
-        row = c.execute("SELECT user_id,amount FROM withdrawals WHERE id=? AND status='pending'", (wid,)).fetchone()
-        if not row:
-            await m.answer("Заявка не найдена или уже выплачена")
-            return
-        c.execute("UPDATE withdrawals SET status='paid' WHERE id=?", (wid,))
-        c.commit()
-    await m.answer(f"Заявка #{wid} отмечена выплаченной")
-    try:
-        await bot.send_message(row["user_id"], f"Твой вывод #{wid} на {int(row['amount'])} звёзд выплачен")
-    except Exception:
-        pass
-
-def _name(r):
-    return r["first_name"] or (r["username"] and "@" + r["username"]) or f"id {r['id']}"
-
+# ---------------- админка ----------------
 
 def admin_only(uid):
     return bool(ADMIN_ID) and uid == ADMIN_ID
@@ -464,8 +483,9 @@ def admin_only(uid):
 def admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
-         InlineKeyboardButton(text="Заявки на вывод", callback_data="adm:wd")],
-        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")],
+         InlineKeyboardButton(text="Рейтинг сезона", callback_data="adm:rating")],
+        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top"),
+         InlineKeyboardButton(text="Новый сезон", callback_data="adm:ns")],
         [InlineKeyboardButton(text="Разослать напоминания", callback_data="adm:remind"),
          InlineKeyboardButton(text="Бэкап сейчас", callback_data="adm:backup")]])
 
@@ -478,25 +498,20 @@ def stats_text():
         new_today = q("SELECT COUNT(*) FROM users WHERE created>=?", t0)
         new_yday = q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - 86400, t0)
         new_week = q("SELECT COUNT(*) FROM users WHERE created>=?", t0 - 6 * 86400)
-        yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
         seen_today = q("SELECT COUNT(*) FROM activity WHERE day=?", today())
-        seen_yday = q("SELECT COUNT(*) FROM activity WHERE day=?", yday)
-        active = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
+        seen_yday = q("SELECT COUNT(*) FROM activity WHERE day=?", yesterday())
+        checked = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
         with_refs = q("SELECT COUNT(*) FROM users WHERE referrer_id IS NOT NULL")
-        owed = q("SELECT COALESCE(SUM(balance),0) FROM users")
-        pend_n, pend_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM withdrawals WHERE status='pending'").fetchone()
-        paid_n, paid_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM withdrawals WHERE status='paid'").fetchone()
+        pts = q("SELECT COALESCE(SUM(points),0) FROM users")
         buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
         st = {k: q("SELECT COUNT(*) FROM users WHERE status=?", k) for k in STATUSES}
     return (f"Статистика Free Stars\n\n"
             f"Всего вошло в бота: {total}\n"
             f"Новых: сегодня {new_today}, вчера {new_yday}, за 7 дней {new_week}\n"
             f"Заходили в приложение: сегодня {seen_today}, вчера {seen_yday}\n"
-            f"Нажали кнопку сегодня: {active}\n"
+            f"Прошли «Я не бот» сегодня: {checked}\n"
             f"Пришли по приглашению: {with_refs}\n\n"
-            f"Должны пользователям (балансы): {owed:.1f}\n"
-            f"Заявок на вывод: {pend_n} на {pend_s:.0f}\n"
-            f"Выплачено: {paid_n} на {paid_s:.0f}\n\n"
+            f"Очков у игроков всего: {pts:,.0f}\n\n"
             f"Куплено VIP: {buys_n} на {buys_s} звёзд\n"
             + "  ".join(f"{STATUSES[k][2]}: {n}" for k, n in st.items()))
 
@@ -507,37 +522,20 @@ async def admin(m: Message):
         await m.answer(stats_text(), reply_markup=admin_kb())
 
 
-async def mark_paid(wid):
-    with closing(db()) as c:
-        row = c.execute("SELECT user_id,amount FROM withdrawals WHERE id=? AND status='pending'", (wid,)).fetchone()
-        if not row:
-            return None
-        c.execute("UPDATE withdrawals SET status='paid' WHERE id=?", (wid,))
-        c.commit()
-    try:
-        await bot.send_message(row["user_id"], f"Твой вывод #{wid} на {int(row['amount'])} звёзд выплачен")
-    except Exception:
-        pass
-    return row
+@dp.message(Command("prize"))
+async def set_prize(m: Message, command: CommandObject):
+    if not admin_only(m.from_user.id):
+        return
+    if not (command.args or "").strip():
+        await m.answer("Использование: /prize ТЕКСТ (его увидят игроки в рейтинге). Сейчас:\n" + (meta_get("prize") or DEFAULT_PRIZE))
+        return
+    meta_set("prize", command.args.strip()[:500])
+    await m.answer("Текст призов сохранён")
 
 
 async def show(q, text, kb):
     try:
         await q.message.edit_text(text, reply_markup=kb)
-    except Exception:
-        pass
-
-
-@dp.callback_query(F.data.startswith("pay:"))
-async def pay_cb(q: CallbackQuery):
-    if not admin_only(q.from_user.id):
-        await q.answer()
-        return
-    wid = int(q.data.split(":")[1])
-    row = await mark_paid(wid)
-    await show(q, (q.message.text or "") + ("\n\nВыплачено" if row else "\n\nУже была выплачена"), None)
-    try:
-        await q.answer("Выплачено" if row else "Уже выплачена")
     except Exception:
         pass
 
@@ -557,33 +555,34 @@ async def admin_cb(q: CallbackQuery):
                              "WHERE f.ref_active=1 GROUP BY u.id ORDER BY n DESC LIMIT 15").fetchall()
         text = "Топ по друзьям (активные):\n\n" + ("\n".join(f"{i}. {_name(r)} (id {r['id']}): {r['n']}" for i, r in enumerate(rows, 1)) or "Пока пусто")
         await show(q, text, admin_kb())
+    elif parts[1] == "rating":
+        with closing(db()) as c:
+            rows = c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
+                             "ORDER BY season_points DESC LIMIT 15").fetchall()
+        text = f"Рейтинг сезона (с {meta_get('season_start') or 'начала'}):\n\n" + (
+            "\n".join(f"{i}. {_name(r)}" + (f" (@{r['username']})" if r["username"] else "") + f": {r['season_points']:,.0f}"
+                      for i, r in enumerate(rows, 1)) or "Пока пусто")
+        await show(q, text, admin_kb())
+    elif parts[1] == "ns":
+        if len(parts) > 2 and parts[2] == "yes":
+            with closing(db()) as c:
+                c.execute("UPDATE users SET season_points=0")
+                c.commit()
+            meta_set("season_start", today())
+            note = "Новый сезон начат, очки рейтинга обнулены"
+            await show(q, stats_text(), admin_kb())
+        else:
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="Да, начать новый сезон", callback_data="adm:ns:yes"),
+                InlineKeyboardButton(text="Отмена", callback_data="adm:stats")]])
+            await show(q, "Начать новый сезон? Очки рейтинга у всех обнулятся (сами очки игроков останутся). "
+                          "Сначала выплати призы за текущий сезон.", kb)
     elif parts[1] == "remind":
         sent, blocked, total = await run_reminders()
         note = f"Отправлено {sent}, заблокировали {blocked}, всего {total}"
     elif parts[1] == "backup":
         await send_backup()
         note = "Бэкап отправлен в чат"
-    elif parts[1] == "wd":
-        if len(parts) > 2 and parts[2] == "paid":
-            row = await mark_paid(int(parts[3]))
-            note = "Выплачено" if row else "Уже выплачена"
-        with closing(db()) as c:
-            rows = c.execute("SELECT w.id,w.amount,u.id uid,u.username,u.first_name FROM withdrawals w "
-                             "JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.id LIMIT 10").fetchall()
-        if not rows:
-            await show(q, "Заявок на вывод нет", admin_kb())
-            try:
-                await q.answer(note)
-            except Exception:
-                pass
-            return
-        text = "Заявки на вывод (нажми, чтобы отметить выплаченной):\n\n" + "\n".join(
-            f"#{r['id']}: {int(r['amount'])} звёзд, {_name(r)}" + (f" (@{r['username']})" if r["username"] else " (нет username)")
-            + f", id {r['uid']}" for r in rows)
-        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-            text=f"Выплачено #{r['id']} ({int(r['amount'])})", callback_data=f"adm:wd:paid:{r['id']}")] for r in rows]
-            + [[InlineKeyboardButton(text="Назад", callback_data="adm:stats")]])
-        await show(q, text, kb)
     try:
         await q.answer(note)
     except Exception:
@@ -616,9 +615,9 @@ async def start(m: Message, command: CommandObject):
     if new:
         await notify_new({"id": u.id, "username": u.username, "first_name": u.first_name})
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
-    text = ("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"
-            "Приглашай друзей — +1 звезда в день за каждого, кто заходит и жмёт «Я не бот».")
+        InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    text = ("Привет! Free Stars — игра: подтверди, что ты не бот, тапай звезду, прокачивай улучшения и поднимайся в рейтинге.\n"
+            "Лучшие игроки сезона получают призы в Telegram Stars.")
     global WELCOME_FILE_ID
     try:
         sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "main.jpg")),
