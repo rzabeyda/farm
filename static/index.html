@@ -201,13 +201,9 @@ nav button:active{transform:scale(.93)}
         <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
         <div class="mini"><small>Друзья сегодня</small><b id="p-total">0</b></div>
       </div>
-      <div class="card stcard" id="stcard">
-        <div class="sr-top"><span>Статус</span><b id="st-name">Нет</b></div>
-        <div class="st-sub" id="st-sub"></div>
-      </div>
-      <div class="card streak" id="streak">
-        <div class="sr-top"><span>Стрик</span><b><em id="sk-n">0</em> дн. подряд</b></div>
-        <div class="days" id="sk-days"></div>
+      <div class="duo">
+        <div class="mini" id="streak"><small>Стрик</small><b><em id="sk-n">0</em> дн.</b></div>
+        <div class="mini" id="stcard"><small>Статус</small><b id="st-name">Нет</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
     </section>
@@ -315,9 +311,8 @@ function render(){
   const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
-  const sk=S.streak,k=sk%7,full=sk>0&&k===0;$('sk-n').textContent=sk;
-  $('sk-days').innerHTML=[1,2,3,4,5,6,7].map(d=>'<i class="'+((full||d<=k)?'on':(d===k+1&&!S.claimed_today?'cur':''))+'">'+d+'</i>').join('');
-  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Нет';$('st-name').className=cs?SCOL[cs.key]:'';$('st-sub').textContent=cs?'+'+cs.bonus+' звезд в день. Нажми, чтобы улучшить':'Купи статус и получай больше звезд каждый день';
+  $('sk-n').textContent=S.streak;
+  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Нет';$('st-name').className=cs?SCOL[cs.key]:'';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
