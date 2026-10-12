@@ -19,7 +19,7 @@ MIN_WITHDRAW = int(os.environ.get("MIN_WITHDRAW", 50))
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(HERE, "freestars.db")
 BASE_REWARD = 1.0
-REF_BONUS = 0.01  # +1% к дневной награде за каждого активного друга
+REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
@@ -85,17 +85,19 @@ def verify_init_data(init_data: str) -> dict:
 
 def rate(c, uid):
     n = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
-    return n, round(BASE_REWARD * (1 + REF_BONUS * n), 4)
+    return n, BASE_REWARD
 
 
 def state(c, uid):
     u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     n, daily = rate(c, uid)
     total = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=?", (uid,)).fetchone()[0]
+    ftoday = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND last_claim=?", (uid, today())).fetchone()[0]
     pend = c.execute("SELECT COALESCE(SUM(amount),0) FROM withdrawals WHERE user_id=? AND status='pending'",
                      (uid,)).fetchone()[0]
     return {
-        "balance": round(u["balance"], 4), "daily": daily, "refs": n, "refs_total": total,
+        "balance": round(u["balance"], 4), "daily": daily, "max_daily": round(daily + REF_BONUS * n, 4), "refs": n, "refs_total": total,
+        "friends_today": ftoday,
         "claimed_today": u["last_claim"] == today(), "streak": u["streak"],
         "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4),
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
@@ -150,8 +152,9 @@ def api_claim(x_init_data: str = Header()):
         streak = row["streak"] + 1 if row["last_claim"] == yesterday else 1
         c.execute("UPDATE users SET balance=balance+?, last_claim=?, streak=? WHERE id=?",
                   (daily, t, streak, u["id"]))
-        if row["referrer_id"] and not row["ref_active"]:
+        if row["referrer_id"]:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
+            c.execute("UPDATE users SET balance=balance+? WHERE id=?", (REF_BONUS, row["referrer_id"]))
         c.commit()
         s = state(c, u["id"])
         s["reward"] = daily
@@ -195,7 +198,7 @@ async def start(m: Message, command: CommandObject):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     await m.answer("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"
-                   "Приглашай друзей — +1% к дневной награде за каждого.", reply_markup=kb)
+                   "Приглашай друзей — +1 звезда в день за каждого, кто заходит и жмёт «Я не бот».", reply_markup=kb)
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")

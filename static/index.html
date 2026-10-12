@@ -168,10 +168,10 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="card">
         <div class="grid">
-          <div class="stat"><small>Награда в день</small><b><em id="p-daily">1</em></b></div>
-          <div class="stat"><small>Бонус за друзей</small><b><em id="p-bonus">+0%</em></b></div>
+          <div class="stat"><small>Максимум в день</small><b><em id="p-daily">1</em></b></div>
+          <div class="stat"><small>Бонус за друзей (в день)</small><b><em id="p-bonus">+0%</em></b></div>
           <div class="stat"><small>Активных друзей</small><b id="p-refs">0</b></div>
-          <div class="stat"><small>Приглашено</small><b id="p-total">0</b></div>
+          <div class="stat"><small>Друзей нажали сегодня</small><b id="p-total">0</b></div>
         </div>
       </div>
       <div class="card">
@@ -180,7 +180,7 @@ nav button:active{transform:scale(.93)}
         <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50</span><span id="p-pend"></span></div>
         <button class="wd" id="wd">Вывести</button>
       </div>
-      <div class="note">Каждый друг, который зашёл и нажал «Я не бот», даёт +1% к ежедневной награде навсегда.</div>
+      <div class="note">Каждый друг, который зашёл и нажал «Я не бот», приносит тебе +1 звезду каждый день, когда нажимает кнопку.</div>
     </section>
   </main>
 
@@ -228,8 +228,8 @@ function render(){
   $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
   $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
   $('c-streak').textContent=S.streak;$('c-refs').textContent=S.refs;
-  $('p-daily').textContent=fmt(S.daily);$('p-bonus').textContent='+'+fmt(S.refs)+'%';
-  $('p-refs').textContent=S.refs;$('p-total').textContent=S.refs_total;
+  $('p-daily').textContent=fmt(S.max_daily);$('p-bonus').textContent='+'+fmt(S.refs);
+  $('p-refs').textContent=S.refs;$('p-total').textContent=S.friends_today+' / '+S.refs;
   const b=Math.floor(S.balance);
   $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw;
   $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending):'';
