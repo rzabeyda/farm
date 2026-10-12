@@ -39,15 +39,18 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:calc(16px + env(safe-area-inset-top)) 16px 10px;animation:down .6s both}
 .bal{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;
   background:var(--card);border:1px solid var(--line);backdrop-filter:blur(14px)}
-.bal .ic{width:36px;height:36px;border-radius:50%;background:#050505;border:1.5px solid #ffc01f;display:grid;place-items:center;
+.bal .ic{width:32px;height:32px;border-radius:50%;background:#050505;border:1.5px solid #ffc01f;display:grid;place-items:center;
   box-shadow:0 0 18px rgba(255,184,0,.6)}
 .bal b{display:block;font-size:19px;font-weight:800;line-height:1.1;letter-spacing:-.3px}
+.bal{gap:9px;padding:6px 6px 6px 7px}.bal .bl{font-size:10.5px;line-height:1.25;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+.bn{min-width:62px;text-align:center;padding:7px 15px;border-radius:999px;background:var(--grad);color:var(--on);box-shadow:0 0 18px rgba(255,184,0,.5),inset 0 1px 0 rgba(255,255,255,.45)}
+.bn b{font-size:19px;font-variant-numeric:tabular-nums}.bn.bump{animation:bumpn .55s}@keyframes bumpn{35%{transform:scale(1.2)}}
 .bal small{display:block;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
 .invite{display:flex;align-items:center;gap:7px;border:0;color:var(--on);font-weight:700;font-size:13px;
   padding:11px 15px;border-radius:999px;background:var(--grad);box-shadow:0 6px 24px rgba(255,184,0,.45);
   transition:transform .15s}
 .bump{animation:bump .55s}
-img{display:block;-webkit-user-drag:none;pointer-events:none}.fx img{width:100%;height:100%}nav button img{filter:grayscale(1) opacity(.55);transition:.25s}nav button.on img{filter:none}.bal .ic img{width:22px;height:22px}
+img{display:block;-webkit-user-drag:none;pointer-events:none}.fx img{width:100%;height:100%}nav button img{filter:grayscale(1) opacity(.55);transition:.25s}nav button.on img{filter:none}.bal .ic img{width:20px;height:20px}
 @keyframes bump{35%{transform:scale(1.22);color:#ffe27a}}
 @keyframes down{from{opacity:0;transform:translateY(-16px)}}
 @keyframes up{from{opacity:0;transform:translateY(22px)}}
@@ -243,7 +246,8 @@ nav button:active{transform:scale(.93)}
   <header>
     <div class="bal">
       <div class="ic"><img src="/static/star.png" width="20" height="20" alt="" draggable="false"></div>
-      <div><b id="bal">0</b><small>баланс звёзд</small></div>
+      <span class="bl">Баланс<br>звёзд</span>
+      <div class="bn"><b id="bal">0</b></div>
     </div>
     <button class="invite" id="inv">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
@@ -320,11 +324,11 @@ async function api(p){
 }
 const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
 function closeM(){$('sheet').classList.remove('on')}
-function openM(title,big,text,rows,btn,btn2){
+function openM(title,big,text,rows,btn,btn2,btn3){
   $('sh-t').textContent=title;
   $('sh-b').innerHTML=(big?'<div class="big">'+big+'</div>':'')+(text?'<p>'+text+'</p>':'')+(rows||[]).map(r=>'<div class="r"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')
-    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{btn2.f()};
+    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+(btn3?'<button class="go alt" id="sh-go3">'+btn3.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{btn2.f()};if(btn3)$('sh-go3').onclick=()=>{btn3.f()};
   $('sheet').classList.add('on');
 }
 $('sheet').onclick=e=>{if(e.target.id==='sheet')closeM()};
@@ -335,7 +339,7 @@ function invite(){
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
-function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',f:()=>$('wd').onclick()},{t:'История выплат',f:mHistory})}
+function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',f:()=>$('wd').onclick()},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
 function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить статус',f:mStatus})}
 function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
@@ -413,7 +417,7 @@ $('claim').onclick=async()=>{
   if(S&&S.claimed_today){mTomorrow();return}
   try{S=await api('claim');render();burst();
     try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
-    const bl=$('bal');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
+    const bl=$('bal').closest('.bn');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
     toast('+'+fmt(S.reward)+' получено!')}
   catch(e){toast('Ошибка, попробуй ещё раз')}
 };
