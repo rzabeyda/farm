@@ -123,7 +123,7 @@ main::-webkit-scrollbar{display:none}
 .sheet p{margin:0 0 12px;color:var(--dim);font-size:14px;line-height:1.5}
 .sheet .r{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:14px;color:var(--dim)}.sheet .r b{color:var(--txt)}
 .sheet .go{width:100%;margin-top:14px;border:0;border-radius:16px;padding:15px;font-size:15px;font-weight:800;color:var(--on);background:var(--grad);box-shadow:0 8px 28px rgba(255,184,0,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:8px}.sheet .go:active{transform:scale(.96)}
-.sheet .go.ghost{background:rgba(255,255,255,.07);color:var(--txt);box-shadow:none;margin-top:8px}
+.sheet .go.alt{background:rgba(255,184,0,.12);color:var(--pink);box-shadow:inset 0 0 0 1.5px rgba(255,184,0,.5);margin-top:8px}.sheet .go.ghost{background:rgba(255,255,255,.07);color:var(--txt);box-shadow:none;margin-top:8px}
 .card.fl .empty{padding:18px 0 14px}.card.fl .empty .go{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;font-size:14px;border-radius:13px;width:100%;border:0;font-weight:800;color:var(--on);background:var(--grad)}
 .bal,.mini,.wcard,.orb{cursor:pointer}
 .streak{padding:12px 14px;cursor:pointer}.sr-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin-bottom:10px}.sr-top b{color:var(--txt);font-size:14px}.sr-top em{font-style:normal;font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -306,11 +306,11 @@ async function api(p){
 }
 const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
 function closeM(){$('sheet').classList.remove('on')}
-function openM(title,big,text,rows,btn){
+function openM(title,big,text,rows,btn,btn2){
   $('sh-t').textContent=title;
   $('sh-b').innerHTML=(big?'<div class="big">'+big+'</div>':'')+(text?'<p>'+text+'</p>':'')+(rows||[]).map(r=>'<div class="r"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')
-    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};
+    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{btn2.f()};
   $('sheet').classList.add('on');
 }
 $('sheet').onclick=e=>{if(e.target.id==='sheet')closeM()};
@@ -322,7 +322,7 @@ function invite(){
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
 function mBalance(){openM('Баланс',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]])}
-function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB)}
+function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить статус',f:mStatus})}
 function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
