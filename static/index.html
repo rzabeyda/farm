@@ -242,6 +242,13 @@ header{gap:8px}.invite{padding:11px 13px}
 .card.me.s-obsidian{border-width:1.5px;border-color:rgba(150,110,255,.85);background:linear-gradient(135deg,rgba(139,92,255,.28),rgba(8,5,20,.85) 70%);animation:gl-o 2.6s ease-in-out infinite}
 .card.me.s-obsidian .ava{box-shadow:0 0 0 2.5px #8b5cff,0 0 28px rgba(139,92,255,.8)}
 .card.me.s-obsidian .badge{background:linear-gradient(135deg,#8b5cff,#2d1578);color:#fff}
+/* VIP-плитка пока VIP не куплен: яркая кнопка-призыв */
+.mini.cta{background:var(--grad);border-color:transparent;animation:cta 2s ease-in-out infinite}
+.mini.cta:before{display:none}
+.mini.cta small{color:var(--on);opacity:.75}
+.mini.cta #st-name:not(.t-gold):not(.t-platinum):not(.t-diamond):not(.t-obsidian){background:none;-webkit-background-clip:border-box;background-clip:border-box;-webkit-text-fill-color:var(--on);color:var(--on)}
+.mini.cta:after{content:"";position:absolute;top:-20%;left:-60%;width:38%;height:140%;pointer-events:none;transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);animation:tsh 2.6s ease-in-out infinite}
+@keyframes cta{0%,100%{box-shadow:0 0 14px rgba(255,184,0,.4);transform:scale(1)}50%{box-shadow:0 0 34px rgba(255,184,0,.85);transform:scale(1.035)}}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -311,7 +318,7 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="duo">
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
-        <div class="mini" id="stcard"><small>Статус</small><b id="st-name">VIP</b></div>
+        <div class="mini cta" id="stcard"><small>Статус</small><b id="st-name">VIP</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
     </section>
@@ -433,7 +440,7 @@ function render(){
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+(f.days<S.ref_min_days?' <small class="pg">день '+f.days+' из '+S.ref_min_days+'</small>':'')+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+(S.streak%10===1&&S.streak%100!==11?'день':(S.streak%10>=2&&S.streak%10<=4&&(S.streak%100<12||S.streak%100>14)?'дня':'дней'));
-  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'VIP';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
+  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'VIP';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:' cta');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
 }
