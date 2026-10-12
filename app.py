@@ -106,7 +106,7 @@ async def notify_new(u, tag=None):
     if not ADMIN_ID or u["id"] == ADMIN_ID:
         return
     who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
-    text = f"Новый юзер {who}\nid {u['id']}"
+    text = f"Новый юзер {who}"
     with closing(db()) as c:
         r = c.execute("SELECT r.id,r.username,r.first_name FROM users u JOIN users r ON r.id=u.referrer_id WHERE u.id=?",
                       (u["id"],)).fetchone()
