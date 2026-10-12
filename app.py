@@ -95,12 +95,14 @@ def state(c, uid):
     ftoday = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND last_claim=?", (uid, today())).fetchone()[0]
     fr = [{"name": (f["username"] and "@" + f["username"]) or f["first_name"] or f"id {f['id']}", "done": f["last_claim"] == today()}
           for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? ORDER BY (last_claim=?) DESC, created", (uid, today()))]
+    yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
+    streak = u["streak"] if u["last_claim"] in (today(), yday) else 0
     pend = c.execute("SELECT COALESCE(SUM(amount),0) FROM withdrawals WHERE user_id=? AND status='pending'",
                      (uid,)).fetchone()[0]
     return {
         "balance": round(u["balance"], 4), "daily": daily, "max_daily": round(daily + REF_BONUS * n, 4), "refs": n, "refs_total": total,
         "friends_today": ftoday, "friends": fr,
-        "claimed_today": u["last_claim"] == today(), "streak": u["streak"],
+        "claimed_today": u["last_claim"] == today(), "streak": streak,
         "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4),
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
     }

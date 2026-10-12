@@ -124,6 +124,8 @@ main::-webkit-scrollbar{display:none}
 .sheet .go.ghost{background:rgba(255,255,255,.07);color:var(--txt);box-shadow:none;margin-top:8px}
 .card.fl .empty{padding:18px 0 14px}.card.fl .empty .go{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;font-size:14px;border-radius:13px;width:100%;border:0;font-weight:800;color:var(--on);background:var(--grad)}
 .bal,.mini,.wcard,.orb{cursor:pointer}
+.streak{padding:12px 14px;cursor:pointer}.sr-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin-bottom:10px}.sr-top b{color:var(--txt);font-size:14px}.sr-top em{font-style:normal;font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.days i{display:grid;place-items:center;height:34px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--dim);font-style:normal;font-size:11.5px;font-weight:700}.days i.on{background:var(--grad);border-color:transparent;color:var(--on)}.days i.cur{border-color:var(--pink);color:var(--txt)}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -193,6 +195,10 @@ nav button:active{transform:scale(.93)}
         <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
         <div class="mini"><small>Друзья сегодня</small><b id="p-total">0</b></div>
       </div>
+      <div class="card streak" id="streak">
+        <div class="sr-top"><span>Стрик</span><b><em id="sk-n">0</em> дн. подряд</b></div>
+        <div class="days" id="sk-days"></div>
+      </div>
       <div class="card fl"><div id="fl"></div></div>
     </section>
   </main>
@@ -247,6 +253,7 @@ function mBalance(){openM('Баланс',fmt(S.balance),'Твои накопле
 function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB)}
 function mFriends(){openM('Друзья сегодня',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
+function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
 function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить! Нажми кнопку на главном экране.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:null)}
 function burst(){
   const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
@@ -272,6 +279,8 @@ function render(){
   const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
+  const sk=S.streak,k=sk%7,full=sk>0&&k===0;$('sk-n').textContent=sk;
+  $('sk-days').innerHTML=[1,2,3,4,5,6,7].map(d=>'<i class="'+((full||d<=k)?'on':(d===k+1&&!S.claimed_today?'cur':''))+'">'+d+'</i>').join('');
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
@@ -291,6 +300,7 @@ $('wd').onclick=()=>{
 };
 $('inv').onclick=invite;
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
+$('streak').onclick=()=>S&&mStreak();
 document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
 document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
 document.querySelector('.wcard').onclick=e=>{if(S&&!e.target.closest('#wd'))mWithdraw()};
