@@ -106,6 +106,7 @@ main::-webkit-scrollbar{display:none}
   background:var(--grad);box-shadow:0 8px 28px rgba(255,43,214,.4);transition:transform .15s}
 .wd:disabled{background:rgba(255,255,255,.06);color:var(--dim);box-shadow:none}
 .invite:active,.wd:active:not(:disabled),.chip:active{transform:scale(.94)}
+.fl{margin-top:2px}.fl .row{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--line);font-size:14px;font-weight:600}.fl .row:first-of-type{border-top:0}.fl .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px}.fl .mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}.fl .mk.y{background:rgba(52,211,153,.16);color:#34d399}.fl .mk.n{background:rgba(255,255,255,.07);color:#8a8a99}.fl .empty{color:var(--dim);font-size:13px;text-align:center;padding:10px 0 2px}.fl h4{margin:0 0 6px;font-size:14px}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -180,6 +181,7 @@ nav button:active{transform:scale(.93)}
         <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50</span><span id="p-pend"></span></div>
         <button class="wd" id="wd">Вывести</button>
       </div>
+      <div class="card fl"><div class="lbl"><span>Мои друзья</span><b id="fl-cnt"></b></div><div id="fl"></div></div>
       <div class="note">Каждый друг, который зашёл и нажал «Я не бот», приносит тебе +1 звезду каждый день, когда нажимает кнопку.</div>
     </section>
   </main>
@@ -233,7 +235,10 @@ function render(){
   const b=Math.floor(S.balance);
   $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw;
   $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending):'';
-  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
+  const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  $('fl-cnt').textContent=S.friends_today+' / '+S.friends.length;
+  $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет. Нажми «Пригласить»</div>';  $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
   $('wd').textContent=b<S.min_withdraw?'Ещё '+(S.min_withdraw-b)+' до вывода':'Вывести '+b;
 }
