@@ -175,10 +175,6 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="title" id="hTitle">Забери свою звезду</div>
       <div class="sub" id="hSub">Нажимай раз в день и копи Telegram Stars</div>
-      <div class="chips">
-        <div class="chip"><span id="c-streak">0</span> дн. подряд</div>
-        <div class="chip"><span id="c-refs">0</span> друзей</div>
-      </div>
       <div class="wcard">
         <div class="lbl"><span>До вывода <span id="p-pend"></span></span><b id="p-prog">0 / 50</b></div>
         <div class="bar"><i id="bar"></i></div>
@@ -270,7 +266,7 @@ function render(){
   $('claimTxt').textContent=done?'Приходи завтра':'Я не бот!';
   $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
   $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
-  $('c-streak').textContent=S.streak;$('c-refs').textContent=S.refs;
+  
   $('p-daily').textContent=fmt(S.max_daily);
   $('p-total').textContent=S.friends_today+' / '+S.refs;
   const b=Math.floor(S.balance);
