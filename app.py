@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart, CommandObject
+from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            MenuButtonWebApp, Message, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
@@ -192,6 +192,36 @@ async def api_withdraw(x_init_data: str = Header()):
             pass
     return s
 
+
+@app.post("/api/history")
+def api_history(x_init_data: str = Header()):
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        rows = c.execute("SELECT id,amount,status,created FROM withdrawals WHERE user_id=? ORDER BY id DESC LIMIT 50",
+                         (u["id"],)).fetchall()
+    return [{"id": r["id"], "amount": r["amount"], "status": r["status"], "created": r["created"]} for r in rows]
+
+
+@dp.message(Command("paid"))
+async def paid(m: Message, command: CommandObject):
+    if not ADMIN_ID or m.from_user.id != ADMIN_ID:
+        return
+    if not (command.args or "").strip().isdigit():
+        await m.answer("Использование: /paid НОМЕР_ЗАЯВКИ")
+        return
+    wid = int(command.args.strip())
+    with closing(db()) as c:
+        row = c.execute("SELECT user_id,amount FROM withdrawals WHERE id=? AND status='pending'", (wid,)).fetchone()
+        if not row:
+            await m.answer("Заявка не найдена или уже выплачена")
+            return
+        c.execute("UPDATE withdrawals SET status='paid' WHERE id=?", (wid,))
+        c.commit()
+    await m.answer(f"Заявка #{wid} отмечена выплаченной")
+    try:
+        await bot.send_message(row["user_id"], f"Твой вывод #{wid} на {int(row['amount'])} звёзд выплачен")
+    except Exception:
+        pass
 
 @dp.message(CommandStart())
 async def start(m: Message, command: CommandObject):
