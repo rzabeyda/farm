@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
-                           LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
+                           CallbackQuery, LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -55,6 +55,11 @@ def init_db():
         """)
         try:
             c.execute("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN earned REAL NOT NULL DEFAULT 0")
+            c.execute("UPDATE users SET earned=balance")
         except sqlite3.OperationalError:
             pass
         c.commit()
@@ -186,11 +191,11 @@ def api_claim(x_init_data: str = Header()):
         _, daily = rate(c, u["id"])
         yesterday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
         streak = row["streak"] + 1 if row["last_claim"] == yesterday else 1
-        c.execute("UPDATE users SET balance=balance+?, last_claim=?, streak=? WHERE id=?",
-                  (daily, t, streak, u["id"]))
+        c.execute("UPDATE users SET balance=balance+?, earned=earned+?, last_claim=?, streak=? WHERE id=?",
+                  (daily, daily, t, streak, u["id"]))
         if row["referrer_id"]:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
-            c.execute("UPDATE users SET balance=balance+? WHERE id=?", (REF_BONUS, row["referrer_id"]))
+            c.execute("UPDATE users SET balance=balance+?, earned=earned+? WHERE id=?", (REF_BONUS, REF_BONUS, row["referrer_id"]))
         c.commit()
         s = state(c, u["id"])
         s["reward"] = daily
@@ -306,6 +311,128 @@ async def paid(m: Message, command: CommandObject):
         await bot.send_message(row["user_id"], f"Твой вывод #{wid} на {int(row['amount'])} звёзд выплачен")
     except Exception:
         pass
+
+def _name(r):
+    return r["first_name"] or (r["username"] and "@" + r["username"]) or f"id {r['id']}"
+
+
+@app.post("/api/top")
+def api_top(x_init_data: str = Header()):
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        stars = [{"name": _name(r), "value": round(r["earned"], 2), "me": r["id"] == u["id"]}
+                 for r in c.execute("SELECT id,username,first_name,earned FROM users WHERE earned>0 "
+                                    "ORDER BY earned DESC, id LIMIT 20")]
+        friends = [{"name": _name(r), "value": r["n"], "me": r["id"] == u["id"]}
+                   for r in c.execute(
+                       "SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
+                       "WHERE f.ref_active=1 GROUP BY u.id ORDER BY n DESC, u.id LIMIT 20")]
+        me = c.execute("SELECT earned FROM users WHERE id=?", (u["id"],)).fetchone()
+        my_rank = None
+        if me and me["earned"] > 0:
+            my_rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE earned>?", (me["earned"],)).fetchone()[0]
+    return {"stars": stars, "friends": friends, "my_rank": my_rank}
+
+
+def admin_only(uid):
+    return bool(ADMIN_ID) and uid == ADMIN_ID
+
+
+def admin_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
+         InlineKeyboardButton(text="Заявки на вывод", callback_data="adm:wd")],
+        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")]])
+
+
+def stats_text():
+    t0 = int(datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    with closing(db()) as c:
+        q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
+        total = q("SELECT COUNT(*) FROM users")
+        new_today = q("SELECT COUNT(*) FROM users WHERE created>=?", t0)
+        new_week = q("SELECT COUNT(*) FROM users WHERE created>=?", t0 - 6 * 86400)
+        active = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
+        with_refs = q("SELECT COUNT(*) FROM users WHERE referrer_id IS NOT NULL")
+        owed = q("SELECT COALESCE(SUM(balance),0) FROM users")
+        pend_n, pend_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM withdrawals WHERE status='pending'").fetchone()
+        paid_n, paid_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM withdrawals WHERE status='paid'").fetchone()
+        buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
+        st = {k: q("SELECT COUNT(*) FROM users WHERE status=?", k) for k in STATUSES}
+    return (f"Статистика Free Stars\n\n"
+            f"Пользователи: {total}\n"
+            f"Новых сегодня: {new_today}, за 7 дней: {new_week}\n"
+            f"Нажали сегодня: {active}\n"
+            f"Пришли по приглашению: {with_refs}\n\n"
+            f"Должны пользователям (балансы): {owed:.1f}\n"
+            f"Заявок на вывод: {pend_n} на {pend_s:.0f}\n"
+            f"Выплачено: {paid_n} на {paid_s:.0f}\n\n"
+            f"Куплено статусов: {buys_n} на {buys_s} звёзд\n"
+            + "  ".join(f"{STATUSES[k][2]}: {n}" for k, n in st.items()))
+
+
+@dp.message(Command("admin"))
+async def admin(m: Message):
+    if admin_only(m.from_user.id):
+        await m.answer(stats_text(), reply_markup=admin_kb())
+
+
+async def mark_paid(wid):
+    with closing(db()) as c:
+        row = c.execute("SELECT user_id,amount FROM withdrawals WHERE id=? AND status='pending'", (wid,)).fetchone()
+        if not row:
+            return None
+        c.execute("UPDATE withdrawals SET status='paid' WHERE id=?", (wid,))
+        c.commit()
+    try:
+        await bot.send_message(row["user_id"], f"Твой вывод #{wid} на {int(row['amount'])} звёзд выплачен")
+    except Exception:
+        pass
+    return row
+
+
+async def show(q, text, kb):
+    try:
+        await q.message.edit_text(text, reply_markup=kb)
+    except Exception:
+        pass
+
+
+@dp.callback_query(F.data.startswith("adm:"))
+async def admin_cb(q: CallbackQuery):
+    if not admin_only(q.from_user.id):
+        await q.answer()
+        return
+    parts = q.data.split(":")
+    note = None
+    if parts[1] == "stats":
+        await show(q, stats_text(), admin_kb())
+    elif parts[1] == "top":
+        with closing(db()) as c:
+            rows = c.execute("SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
+                             "WHERE f.ref_active=1 GROUP BY u.id ORDER BY n DESC LIMIT 15").fetchall()
+        text = "Топ по друзьям (активные):\n\n" + ("\n".join(f"{i}. {_name(r)} (id {r['id']}): {r['n']}" for i, r in enumerate(rows, 1)) or "Пока пусто")
+        await show(q, text, admin_kb())
+    elif parts[1] == "wd":
+        if len(parts) > 2 and parts[2] == "paid":
+            row = await mark_paid(int(parts[3]))
+            note = "Выплачено" if row else "Уже выплачена"
+        with closing(db()) as c:
+            rows = c.execute("SELECT w.id,w.amount,u.id uid,u.username,u.first_name FROM withdrawals w "
+                             "JOIN users u ON u.id=w.user_id WHERE w.status='pending' ORDER BY w.id LIMIT 10").fetchall()
+        if not rows:
+            await show(q, "Заявок на вывод нет", admin_kb())
+            await q.answer(note)
+            return
+        text = "Заявки на вывод (нажми, чтобы отметить выплаченной):\n\n" + "\n".join(
+            f"#{r['id']}: {int(r['amount'])} звёзд, {_name(r)}" + (f" (@{r['username']})" if r["username"] else " (нет username)")
+            + f", id {r['uid']}" for r in rows)
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+            text=f"Выплачено #{r['id']} ({int(r['amount'])})", callback_data=f"adm:wd:paid:{r['id']}")] for r in rows]
+            + [[InlineKeyboardButton(text="Назад", callback_data="adm:stats")]])
+        await show(q, text, kb)
+    await q.answer(note)
+
 
 @dp.message(CommandStart())
 async def start(m: Message, command: CommandObject):
