@@ -181,7 +181,7 @@ nav button.on img{animation:tw 3s ease-in-out infinite}
 .bar i{background-image:linear-gradient(90deg,#ffb800,#ffe27a,#ffb800)}
 #toast{transition:.45s cubic-bezier(.2,1.6,.4,1)}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
-/* ===== сияющие статусы ===== */
+/* ===== сияющие VIP ===== */
 .tier.t-gold{background:linear-gradient(135deg,rgba(255,214,70,.22),rgba(255,140,0,.07) 60%,rgba(255,200,60,.16));border-color:rgba(255,200,60,.55);box-shadow:0 0 22px rgba(255,184,0,.22),inset 0 0 22px rgba(255,200,60,.08)}
 .tier.t-platinum{background:linear-gradient(135deg,rgba(235,242,255,.2),rgba(150,165,190,.06) 60%,rgba(235,242,255,.15));border-color:rgba(220,230,245,.55);box-shadow:0 0 22px rgba(200,215,240,.2),inset 0 0 22px rgba(230,238,255,.07)}
 .tier.t-diamond{background:linear-gradient(135deg,rgba(255,43,214,.26),rgba(161,0,255,.1) 55%,rgba(255,120,235,.2));border-color:rgba(255,80,225,.6);box-shadow:0 0 26px rgba(255,43,214,.32),inset 0 0 24px rgba(255,43,214,.1)}
@@ -299,7 +299,7 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="duo">
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
-        <div class="mini" id="stcard"><small>Статус</small><b id="st-name">Купить</b></div>
+        <div class="mini" id="stcard"><small>VIP</small><b id="st-name">Купить</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
     </section>
@@ -352,8 +352,8 @@ function invite(){
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
-function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:doWithdraw},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
-function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить статус',f:mStatus})}
+function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:doWithdraw},{t:'История выплат',f:mHistory},{t:'Купить VIP',f:mStatus})}
+function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус VIP','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить VIP',f:mStatus})}
 function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
@@ -365,8 +365,8 @@ async function mHistory(){
 }
 const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond'};
 function mStatus(){
-  $('sh-t').textContent='Статусы';
-  $('sh-b').innerHTML='<p>Статус навсегда увеличивает твою награду в день. Покупка за Telegram Stars. Более высокий статус заменяет предыдущий, оплачивается только разница.</p>'
+  $('sh-t').textContent='VIP-уровни';
+  $('sh-b').innerHTML='<p>VIP навсегда увеличивает твою награду в день. Покупка за Telegram Stars. Более высокий уровень заменяет предыдущий, оплачивается только разница.</p>'
    +S.statuses.map(s=>{const own=S.status===s.key,low=!own&&s.pay<=0;
      return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>+'+s.bonus+' звезд в день · цена '+s.price+'</small></div>'
      +'<button class="buy" data-k="'+s.key+'"'+(own||low?' disabled':'')+'>'+(own?'Активен':low?'Ниже':'<img src="/static/star.png" alt="">'+s.pay)+'</button></div>'}).join('')
@@ -380,7 +380,7 @@ async function buy(k){
     const r=await fetch('/api/buy/'+k,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
     if(!r.ok)throw 0;const {link}=await r.json();
     if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
-    tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('Статус активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
+    tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('VIP активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}
 }
 function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить. Нажми кнопку ниже.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:{t:'Вывести '+b,f:doWithdraw},{t:'История выплат',f:mHistory})}
@@ -458,7 +458,7 @@ function mInfo(){
    +'<div class="inf"><h4>1. Забирай звезду</h4><p>Раз в день нажимай большую кнопку <b>«Я не бот!»</b> и получай <b>1 звезду</b>. Следующая будет доступна после 00:00 по UTC (03:00 по Москве). Бот напомнит, если забудешь.</p></div>'
    +'<div class="inf"><h4>2. Приглашай друзей</h4><p>Нажми <b>«Пригласить»</b> и отправь ссылку. Каждый раз, когда твой друг нажимает кнопку, ты получаешь <b>+1 звезду</b>. Кто нажал сегодня, видно в профиле по галочке.</p></div>'
    +'<div class="inf"><h4>3. Стрик</h4><p>Заходи каждый день подряд. Если пропустить день, серия начнётся заново.</p></div>'
-   +'<div class="inf"><h4>4. Статусы</h4><p>Статус навсегда увеличивает твою награду в день: '+st+'. Более высокий статус заменяет прежний, платится только разница. Оплата в Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>4. VIP</h4><p>VIP навсегда увеличивает твою награду в день: '+st+'. Более высокий уровень заменяет прежний, платится только разница. Оплата в Telegram Stars.</p></div>'
    +'<div class="inf"><h4>5. Вывод</h4><p>Накопи минимум <b>'+(S?S.min_withdraw:50)+' звёзд</b> и нажми <b>«Вывести»</b>. Заявка попадёт к админу, выплата вручную. Статус заявок смотри в «История выплат».</p></div>'
    +'</div><button class="go" id="sh-go">Показать обучение</button><button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;$('sh-go').onclick=()=>{closeM();showOb()};
@@ -468,7 +468,7 @@ $('help').onclick=()=>S&&mInfo();
 const OB=[
  {t:'Забирай звезду каждый день',s:'Нажми <b>«Я не бот!»</b> раз в день и получи <b>1 звезду</b> Telegram Stars.',i:'<img src="/static/star.png" alt="">'},
  {t:'Приглашай друзей',s:'За каждого друга, который нажал кнопку, ты получаешь <b>+1 звезду</b> каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20c.6-3.7 3.2-5.6 6.5-5.6s5.9 1.9 6.5 5.6"/><path d="M17.5 8.5v6M14.5 11.5h6"/></svg>'},
- {t:'Покупай статус',s:'<b>Gold, Platinum, Diamond</b> навсегда увеличивают награду за каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
+ {t:'Покупай VIP',s:'<b>Gold, Platinum, Diamond</b> навсегда увеличивают награду за каждый день.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'},
  {t:'Выводи звёзды',s:'Накопи минимум и нажми <b>«Вывести»</b>. Заявка придёт админу, статус смотри в истории выплат.',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg>'}
 ];
 let obI=0;

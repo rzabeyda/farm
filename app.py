@@ -24,7 +24,7 @@ BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
 BASE_REWARD = 1.0
-# Статусы за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
+# VIP-уровни за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
 STATUSES = {
     "gold": (25, 1, "Gold"),
     "platinum": (100, 5, "Platinum"),
@@ -348,8 +348,8 @@ async def api_buy(key: str, x_init_data: str = Header()):
         pay = status_price(c, u["id"], key)
     name = STATUSES[key][2]
     link = await bot.create_invoice_link(
-        title=f"Статус {name}", description=f"+{STATUSES[key][1]} звезд к доходу каждый день, навсегда",
-        payload=f"status:{key}:{u['id']}", currency="XTR", prices=[LabeledPrice(label=f"Статус {name}", amount=pay)])
+        title=f"VIP {name}", description=f"+{STATUSES[key][1]} звезд к доходу каждый день, навсегда",
+        payload=f"status:{key}:{u['id']}", currency="XTR", prices=[LabeledPrice(label=f"VIP {name}", amount=pay)])
     return {"link": link}
 
 
@@ -363,7 +363,7 @@ async def pre_checkout(q: PreCheckoutQuery):
             ok = key in STATUSES and int(uid) == q.from_user.id and not (cur and STATUSES[cur][0] >= STATUSES[key][0])
     except Exception:
         pass
-    await q.answer(ok=ok, error_message=None if ok else "Этот статус уже недоступен для покупки")
+    await q.answer(ok=ok, error_message=None if ok else "Этот VIP-уровень уже недоступен для покупки")
 
 
 @dp.message(F.successful_payment)
@@ -378,10 +378,10 @@ async def paid_status(m: Message):
                   (sp.telegram_payment_charge_id, uid, key, sp.total_amount, int(time.time())))
         c.execute("UPDATE users SET status=? WHERE id=?", (key, uid))
         c.commit()
-    await m.answer(f"Статус {STATUSES[key][2]} активирован: +{STATUSES[key][1]} звезд к доходу каждый день")
+    await m.answer(f"VIP {STATUSES[key][2]} активирован: +{STATUSES[key][1]} звезд к доходу каждый день")
     if ADMIN_ID:
         try:
-            await bot.send_message(ADMIN_ID, f"Покупка статуса {STATUSES[key][2]}: {sp.total_amount} звёзд от id {uid}")
+            await bot.send_message(ADMIN_ID, f"Покупка VIP {STATUSES[key][2]}: {sp.total_amount} звёзд от id {uid}")
         except Exception:
             pass
 
@@ -455,7 +455,7 @@ def stats_text():
             f"Должны пользователям (балансы): {owed:.1f}\n"
             f"Заявок на вывод: {pend_n} на {pend_s:.0f}\n"
             f"Выплачено: {paid_n} на {paid_s:.0f}\n\n"
-            f"Куплено статусов: {buys_n} на {buys_s} звёзд\n"
+            f"Куплено VIP: {buys_n} на {buys_s} звёзд\n"
             + "  ".join(f"{STATUSES[k][2]}: {n}" for k, n in st.items()))
 
 
