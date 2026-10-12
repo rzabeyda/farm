@@ -30,6 +30,7 @@ STATUSES = {
     "platinum": (100, 5, "Platinum"),
     "diamond": (500, 25, "Diamond"),
 }
+REF_MIN_DAYS = 3  # друг начинает приносить бонус после стольких дней, в которые он нажал кнопку
 REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
 bot = Bot(BOT_TOKEN)
@@ -68,6 +69,11 @@ def init_db():
                 c.execute(ddl)
             except sqlite3.OperationalError:
                 pass
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN claim_days INTEGER NOT NULL DEFAULT 0")
+            c.execute("UPDATE users SET claim_days=MAX(streak,1) WHERE last_claim IS NOT NULL")
+        except sqlite3.OperationalError:
+            pass
         try:
             c.execute("ALTER TABLE users ADD COLUMN earned REAL NOT NULL DEFAULT 0")
             c.execute("UPDATE users SET earned=balance")
@@ -137,9 +143,9 @@ def state(c, uid):
     u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     n, daily = rate(c, uid)
     total = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=?", (uid,)).fetchone()[0]
-    ftoday = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND last_claim=?", (uid, today())).fetchone()[0]
-    fr = [{"name": (f["username"] and "@" + f["username"]) or f["first_name"] or f"id {f['id']}", "done": f["last_claim"] == today()}
-          for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? ORDER BY (last_claim=?) DESC, created", (uid, today()))]
+    ftoday = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND last_claim=?", (uid, today())).fetchone()[0]
+    fr = [{"name": (f["username"] and "@" + f["username"]) or f["first_name"] or f"id {f['id']}", "done": f["last_claim"] == today(), "days": f["claim_days"]}
+          for f in c.execute("SELECT id,username,first_name,last_claim,claim_days FROM users WHERE referrer_id=? ORDER BY (last_claim=?) DESC, created", (uid, today()))]
     yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
     streak = u["streak"] if u["last_claim"] in (today(), yday) else 0
     pend = c.execute("SELECT COALESCE(SUM(amount),0) FROM withdrawals WHERE user_id=? AND status='pending'",
@@ -148,7 +154,7 @@ def state(c, uid):
         "balance": round(u["balance"], 4), "daily": daily, "max_daily": round(daily + REF_BONUS * n, 4), "refs": n, "refs_total": total,
         "friends_today": ftoday, "friends": fr,
         "claimed_today": u["last_claim"] == today(), "streak": streak, "today": today(),
-        "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4),
+        "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4), "ref_min_days": REF_MIN_DAYS,
         "status": status_of(c, uid), "status_bonus": status_bonus(c, uid),
         "statuses": [{"key": k, "name": v[2], "price": v[0], "bonus": v[1], "pay": status_price(c, uid, k)}
                      for k, v in STATUSES.items()],
@@ -297,7 +303,9 @@ def api_claim(x_init_data: str = Header()):
         streak = row["streak"] + 1 if row["last_claim"] == yesterday else 1
         c.execute("UPDATE users SET balance=balance+?, earned=earned+?, last_claim=?, streak=? WHERE id=?",
                   (daily, daily, t, streak, u["id"]))
-        if row["referrer_id"]:
+        days = row["claim_days"] + 1
+        c.execute("UPDATE users SET claim_days=? WHERE id=?", (days, u["id"]))
+        if row["referrer_id"] and days >= REF_MIN_DAYS:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
             c.execute("UPDATE users SET balance=balance+?, earned=earned+? WHERE id=?", (REF_BONUS, REF_BONUS, row["referrer_id"]))
         c.commit()
@@ -327,10 +335,12 @@ async def api_withdraw(x_init_data: str = Header()):
         wid = cur.lastrowid
     if ADMIN_ID:
         try:
-            name = f"@{u['username']}" if u.get("username") else u.get("first_name", "")
-            await bot.send_message(ADMIN_ID, f"Вывод #{wid}: {amount} звёзд от {name} (id {u['id']})")
-        except Exception:
-            pass
+            who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name', '')} (нет username)"
+            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+                text=f"Выплачено #{wid}", callback_data=f"pay:{wid}")]])
+            await bot.send_message(ADMIN_ID, f"{who} запрос {amount} Stars\n#{wid} · id {u['id']}", reply_markup=kb)
+        except Exception as e:
+            print("withdraw notify:", e)
     return s
 
 
@@ -482,6 +492,20 @@ async def mark_paid(wid):
 async def show(q, text, kb):
     try:
         await q.message.edit_text(text, reply_markup=kb)
+    except Exception:
+        pass
+
+
+@dp.callback_query(F.data.startswith("pay:"))
+async def pay_cb(q: CallbackQuery):
+    if not admin_only(q.from_user.id):
+        await q.answer()
+        return
+    wid = int(q.data.split(":")[1])
+    row = await mark_paid(wid)
+    await show(q, (q.message.text or "") + ("\n\nВыплачено" if row else "\n\nУже была выплачена"), None)
+    try:
+        await q.answer("Выплачено" if row else "Уже выплачена")
     except Exception:
         pass
 
