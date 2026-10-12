@@ -475,7 +475,7 @@ const OB=[
 let obI=0;
 function obDraw(){
   const o=OB[obI],c=$('ob-card');
-  c.innerHTML='<div class="ob-ic">'+o.i+'</div><h2>'+o.t+'</h2><p>'+o.s+'</p>';
+  c.innerHTML='<div class="ob-ic">'+o.i+'</div><h2>'+o.t+'</h2><p>'+(typeof o.s==='function'?o.s():o.s)+'</p>';
   c.classList.remove('in');void c.offsetWidth;c.classList.add('in');
   $('ob-dots').innerHTML=OB.map((_,i)=>'<i class="'+(i===obI?'on':'')+'"></i>').join('');
   $('ob-next').textContent=obI===OB.length-1?'Начать':'Далее';
