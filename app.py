@@ -63,6 +63,7 @@ def init_db():
         except sqlite3.OperationalError:
             pass
         c.execute("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id))")
         for ddl in ("ALTER TABLE users ADD COLUMN last_remind TEXT",
                     "ALTER TABLE users ADD COLUMN remind_off INTEGER NOT NULL DEFAULT 0"):
             try:
@@ -89,11 +90,32 @@ def today():
 def ensure_user(c, uid, username, first_name, ref=None):
     if c.execute("SELECT 1 FROM users WHERE id=?", (uid,)).fetchone():
         c.execute("UPDATE users SET username=?, first_name=? WHERE id=?", (username, first_name, uid))
-        return
+        return False
     if ref == uid or not c.execute("SELECT 1 FROM users WHERE id=?", (ref,)).fetchone():
         ref = None
     c.execute("INSERT INTO users(id,username,first_name,referrer_id,created) VALUES(?,?,?,?,?)",
               (uid, username, first_name, ref, int(time.time())))
+    return True
+
+
+def touch(c, uid):
+    c.execute("INSERT OR IGNORE INTO activity(day,user_id) VALUES(?,?)", (today(), uid))
+
+
+async def notify_new(u, tag=None):
+    if not ADMIN_ID or u["id"] == ADMIN_ID:
+        return
+    who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
+    text = f"Новый юзер {who}\nid {u['id']}"
+    with closing(db()) as c:
+        r = c.execute("SELECT r.id,r.username,r.first_name FROM users u JOIN users r ON r.id=u.referrer_id WHERE u.id=?",
+                      (u["id"],)).fetchone()
+    if r:
+        text += " · пригласил " + (f"@{r['username']}" if r["username"] else (r["first_name"] or f"id {r['id']}"))
+    try:
+        await bot.send_message(ADMIN_ID, text)
+    except Exception as e:
+        print("notify new:", e)
 
 
 def parse_ref(param):
@@ -278,19 +300,24 @@ def user_from(init_data):
 
 
 @app.post("/api/me")
-def api_me(x_init_data: str = Header()):
+async def api_me(x_init_data: str = Header()):
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
-        ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
+        new = ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
+        touch(c, u["id"])
         c.commit()
-        return state(c, u["id"])
+        s = state(c, u["id"])
+    if new:
+        await notify_new(u)
+    return s
 
 
 @app.post("/api/claim")
-def api_claim(x_init_data: str = Header()):
+async def api_claim(x_init_data: str = Header()):
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
-        ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
+        new = ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
+        touch(c, u["id"])
         c.commit()
         c.execute("BEGIN IMMEDIATE")
         row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
@@ -311,7 +338,9 @@ def api_claim(x_init_data: str = Header()):
         c.commit()
         s = state(c, u["id"])
         s["reward"] = daily
-        return s
+    if new:
+        await notify_new(u)
+    return s
 
 
 @app.post("/api/withdraw")
@@ -449,7 +478,11 @@ def stats_text():
         q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
         total = q("SELECT COUNT(*) FROM users")
         new_today = q("SELECT COUNT(*) FROM users WHERE created>=?", t0)
+        new_yday = q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - 86400, t0)
         new_week = q("SELECT COUNT(*) FROM users WHERE created>=?", t0 - 6 * 86400)
+        yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
+        seen_today = q("SELECT COUNT(*) FROM activity WHERE day=?", today())
+        seen_yday = q("SELECT COUNT(*) FROM activity WHERE day=?", yday)
         active = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
         with_refs = q("SELECT COUNT(*) FROM users WHERE referrer_id IS NOT NULL")
         owed = q("SELECT COALESCE(SUM(balance),0) FROM users")
@@ -458,9 +491,10 @@ def stats_text():
         buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
         st = {k: q("SELECT COUNT(*) FROM users WHERE status=?", k) for k in STATUSES}
     return (f"Статистика Free Stars\n\n"
-            f"Пользователи: {total}\n"
-            f"Новых сегодня: {new_today}, за 7 дней: {new_week}\n"
-            f"Нажали сегодня: {active}\n"
+            f"Всего вошло в бота: {total}\n"
+            f"Новых: сегодня {new_today}, вчера {new_yday}, за 7 дней {new_week}\n"
+            f"Заходили в приложение: сегодня {seen_today}, вчера {seen_yday}\n"
+            f"Нажали кнопку сегодня: {active}\n"
             f"Пришли по приглашению: {with_refs}\n\n"
             f"Должны пользователям (балансы): {owed:.1f}\n"
             f"Заявок на вывод: {pend_n} на {pend_s:.0f}\n"
@@ -578,9 +612,11 @@ async def start_remind(m: Message):
 async def start(m: Message, command: CommandObject):
     u = m.from_user
     with closing(db()) as c:
-        ensure_user(c, u.id, u.username, u.first_name, parse_ref(command.args))
+        new = ensure_user(c, u.id, u.username, u.first_name, parse_ref(command.args))
         c.execute("UPDATE users SET remind_off=0 WHERE id=?", (u.id,))
         c.commit()
+    if new:
+        await notify_new({"id": u.id, "username": u.username, "first_name": u.first_name})
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     text = ("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"

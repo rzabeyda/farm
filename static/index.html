@@ -230,6 +230,7 @@ header{gap:8px}.invite{padding:11px 13px}
 .ob-card h2{margin:0 0 10px;font-size:26px;letter-spacing:-.6px}.ob-card p{margin:0;color:var(--dim);font-size:15.5px;line-height:1.5}.ob-card p b{color:var(--txt)}
 .ob-dots{display:flex;gap:8px;margin:14px 0 18px}.ob-dots i{width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.18);transition:.3s}.ob-dots i.on{width:26px;background:var(--grad)}
 #ob .wd{width:100%;max-width:340px;padding:16px;font-size:16px}
+#st-name{font-size:26px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -299,7 +300,7 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="duo">
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
-        <div class="mini" id="stcard"><small>VIP</small><b id="st-name">Купить</b></div>
+        <div class="mini" id="stcard"><small>Статус</small><b id="st-name">VIP</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
     </section>
@@ -420,7 +421,7 @@ function render(){
   const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+(f.days<S.ref_min_days?' <small class="pg">день '+f.days+' из '+S.ref_min_days+'</small>':'')+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+(S.streak%10===1&&S.streak%100!==11?'день':(S.streak%10>=2&&S.streak%10<=4&&(S.streak%100<12||S.streak%100>14)?'дня':'дней'));
-  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Купить';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
+  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'VIP';$('st-name').className=cs?SCOL[cs.key]:'';$('stcard').className='mini'+(cs?' s-'+cs.key:'');$('me').className='card me'+(cs?' s-'+cs.key:'');$('badge').textContent=cs?cs.name:'Новичок';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
 }
