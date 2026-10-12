@@ -107,7 +107,7 @@ async def lifespan(_):
     init_db()
     try:
         await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="⭐ Звёзды", web_app=WebAppInfo(url=WEBAPP_URL)))
+            menu_button=MenuButtonWebApp(text="Звёзды", web_app=WebAppInfo(url=WEBAPP_URL)))
     except Exception as e:
         print("menu button:", e)
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
@@ -179,7 +179,7 @@ async def api_withdraw(x_init_data: str = Header()):
     if ADMIN_ID:
         try:
             name = f"@{u['username']}" if u.get("username") else u.get("first_name", "")
-            await bot.send_message(ADMIN_ID, f"💸 Вывод #{wid}: {amount} ⭐ от {name} (id {u['id']})")
+            await bot.send_message(ADMIN_ID, f"Вывод #{wid}: {amount} звёзд от {name} (id {u['id']})")
         except Exception:
             pass
     return s
@@ -192,8 +192,8 @@ async def start(m: Message, command: CommandObject):
         ensure_user(c, u.id, u.username, u.first_name, parse_ref(command.args))
         c.commit()
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="⭐ Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
-    await m.answer("Привет! Заходи каждый день, жми «Я не бот» и получай ⭐ Telegram Stars.\n"
+        InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    await m.answer("Привет! Заходи каждый день, жми «Я не бот» и получай Telegram Stars.\n"
                    "Приглашай друзей — +1% к дневной награде за каждого.", reply_markup=kb)
 
 

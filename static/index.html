@@ -122,7 +122,7 @@ nav button:active{transform:scale(.93)}
 #toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 
 /* конфетти */
-.fx{position:absolute;pointer-events:none;font-size:18px;z-index:8;animation:fx 1s ease-out forwards}
+.fx{position:absolute;pointer-events:none;width:18px;height:18px;color:#e040fb;z-index:8;animation:fx 1s ease-out forwards}
 @keyframes fx{to{transform:translate(var(--x),var(--y)) scale(.4) rotate(220deg);opacity:0}}
 
 /* вне Telegram */
@@ -156,8 +156,8 @@ nav button:active{transform:scale(.93)}
       <div class="title" id="hTitle">Забери свою звезду</div>
       <div class="sub" id="hSub">Нажимай раз в день и копи Telegram Stars</div>
       <div class="chips">
-        <div class="chip">🔥 <span id="c-streak">0</span> дн. подряд</div>
-        <div class="chip">👥 <span id="c-refs">0</span> друзей</div>
+        <div class="chip"><span id="c-streak">0</span> дн. подряд</div>
+        <div class="chip"><span id="c-refs">0</span> друзей</div>
       </div>
     </section>
 
@@ -168,7 +168,7 @@ nav button:active{transform:scale(.93)}
       </div>
       <div class="card">
         <div class="grid">
-          <div class="stat"><small>Награда в день</small><b><em id="p-daily">1</em> ⭐</b></div>
+          <div class="stat"><small>Награда в день</small><b><em id="p-daily">1</em></b></div>
           <div class="stat"><small>Бонус за друзей</small><b><em id="p-bonus">+0%</em></b></div>
           <div class="stat"><small>Активных друзей</small><b id="p-refs">0</b></div>
           <div class="stat"><small>Приглашено</small><b id="p-total">0</b></div>
@@ -177,7 +177,7 @@ nav button:active{transform:scale(.93)}
       <div class="card">
         <div class="lbl"><span>Вывод в Telegram Stars</span><b id="p-prog">0 / 50</b></div>
         <div class="bar"><i id="bar"></i></div>
-        <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50 ⭐</span><span id="p-pend"></span></div>
+        <div class="lbl" style="margin-bottom:14px"><span id="p-min">мин. 50</span><span id="p-pend"></span></div>
         <button class="wd" id="wd">Вывести</button>
       </div>
       <div class="note">Каждый друг, который зашёл и нажал «Я не бот», даёт +1% к ежедневной награде навсегда.</div>
@@ -193,7 +193,7 @@ nav button:active{transform:scale(.93)}
 
   <div id="toast"></div>
   <div id="out">
-    <div style="font-size:54px">⭐</div>
+    <div style="width:54px;height:54px;color:#e040fb">
     <div class="title">Открой в Telegram</div>
     <div class="sub">Звёзды начисляются только внутри Telegram — там мы убеждаемся, что ты не бот.</div>
     <a href="https://t.me/freestars5bot" target="_blank">Открыть @freestars5bot</a>
@@ -214,7 +214,7 @@ async function api(p){
 }
 function burst(){
   const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
-  for(let i=0;i<16;i++){const f=document.createElement('div');f.className='fx';f.textContent=['⭐','✨','💖'][i%3];
+  for(let i=0;i<16;i++){const f=document.createElement('div');f.className='fx';f.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>';
     f.style.left=(c.left-a.left+c.width/2)+'px';f.style.top=(c.top-a.top+c.height/2)+'px';
     const ang=Math.random()*6.28,d=90+Math.random()*110;
     f.style.setProperty('--x',Math.cos(ang)*d+'px');f.style.setProperty('--y',Math.sin(ang)*d+'px');
@@ -225,32 +225,32 @@ function render(){
   const done=S.claimed_today;
   $('claim').classList.toggle('done',done);$('orb').classList.toggle('off',done);$('claim').disabled=done;
   $('claimTxt').textContent=done?'Приходи завтра':'Я не бот!';
-  $('hTitle').textContent=done?'Награда получена ✨':'Забери свою звезду';
-  $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+' ⭐ — это займёт секунду';
+  $('hTitle').textContent=done?'Награда получена':'Забери свою звезду';
+  $('hSub').textContent=done?'Возвращайся завтра за новой порцией звёзд':'Нажми и получи +'+fmt(S.daily)+'  — это займёт секунду';
   $('c-streak').textContent=S.streak;$('c-refs').textContent=S.refs;
   $('p-daily').textContent=fmt(S.daily);$('p-bonus').textContent='+'+fmt(S.refs)+'%';
   $('p-refs').textContent=S.refs;$('p-total').textContent=S.refs_total;
   const b=Math.floor(S.balance);
-  $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw+' ⭐';
-  $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending)+' ⭐':'';
+  $('p-prog').textContent=b+' / '+S.min_withdraw;$('p-min').textContent='минимум '+S.min_withdraw;
+  $('p-pend').textContent=S.pending>0?'на выводе: '+fmt(S.pending):'';
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
-  $('wd').textContent=b<S.min_withdraw?'Ещё '+(S.min_withdraw-b)+' ⭐ до вывода':'Вывести '+b+' ⭐';
+  $('wd').textContent=b<S.min_withdraw?'Ещё '+(S.min_withdraw-b)+' до вывода':'Вывести '+b;
 }
 $('claim').onclick=async()=>{
   try{S=await api('claim');render();burst();
     try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
     const bl=$('bal');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
-    toast('+'+fmt(S.reward)+' ⭐ получено!')}
+    toast('+'+fmt(S.reward)+' получено!')}
   catch(e){toast('Ошибка, попробуй ещё раз')}
 };
 $('wd').onclick=()=>{
   const go=async()=>{try{S=await api('withdraw');render();toast('Заявка на вывод создана')}catch(e){toast('Не удалось вывести')}};
-  tg&&tg.showConfirm?tg.showConfirm('Вывести '+Math.floor(S.balance)+' ⭐?',ok=>ok&&go()):go();
+  tg&&tg.showConfirm?tg.showConfirm('Вывести '+Math.floor(S.balance)+' звёзд?',ok=>ok&&go()):go();
 };
 $('inv').onclick=()=>{
   if(!S)return;
-  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('⭐ Заходи и получай бесплатные Telegram Stars каждый день!');
+  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи и получай бесплатные Telegram Stars каждый день!');
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 };
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
