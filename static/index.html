@@ -215,18 +215,6 @@ b.t-gold{background-image:linear-gradient(90deg,#ffb800,#fff1a8,#ffb800)}b.t-dia
 .card.me.s-platinum .badge{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}
 .card.me.s-diamond .badge{background:linear-gradient(135deg,#ff2bd6,#a100ff);color:#fff}
 .card.me[class*=s-]:after{content:"";position:absolute;top:-20%;left:-60%;width:35%;height:140%;pointer-events:none;transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:tsh 4.2s ease-in-out infinite}
-.top{width:100%;padding:10px 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);cursor:pointer;margin-bottom:4px;text-align:left}
-.top-h{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}.top-h b{color:var(--pink)}
-.top-r{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.empty-top{grid-column:1/-1;text-align:center;color:var(--dim);font-size:13px;padding:6px 0}
-.tc{display:flex;flex-direction:column;align-items:center;padding:7px 4px;border-radius:13px;background:rgba(255,255,255,.04);min-width:0}
-.tc span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;margin-top:4px}.tc small{color:var(--dim);font-size:11px}
-i.r1,i.r2,i.r3,i.r0{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-style:normal;font-weight:800;font-size:12px;flex:none;background:rgba(255,255,255,.08);color:var(--dim)}
-i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}i.r3{background:linear-gradient(135deg,#f0b27a,#a8641f);color:#2b1400}
-.tabs2{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:14px;background:rgba(255,255,255,.06);margin:6px 0 8px}
-.tabs2 button{border:0;background:none;color:var(--dim);font-weight:700;font-size:13.5px;padding:9px;border-radius:11px}.tabs2 button.on{background:var(--grad);color:var(--on)}
-.tl{max-height:46vh;overflow-y:auto;scrollbar-width:none}.tl::-webkit-scrollbar{display:none}
-.tr{display:flex;align-items:center;gap:10px;padding:9px 8px;border-top:1px solid var(--line);font-size:14px;font-weight:600;border-radius:10px}.tr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tr b{color:var(--pink)}
-.tr.me{background:rgba(255,184,0,.1);border-top-color:transparent;box-shadow:inset 0 0 0 1px rgba(255,184,0,.4)}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -269,7 +257,6 @@ nav button:active{transform:scale(.93)}
 
   <main>
     <section class="tab on" id="home">
-      <div class="top" id="top"><div class="top-h"><span>Топ игроков</span><b>Все</b></div><div class="top-r" id="top-r"><div class="empty-top">Загрузка</div></div></div>
       <div class="orb" id="orb"><i></i><i></i><i></i>
         <button class="claim" id="claim">
           <img src="/static/star.png" width="50" height="50" alt="" draggable="false">
@@ -383,25 +370,6 @@ async function buy(k){
     tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('Статус активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}
 }
-const escH=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-let TOP=null;
-async function loadTop(){try{const r=await fetch('/api/top',{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});TOP=await r.json();renderTop()}catch(e){}}
-function renderTop(){
-  const l=TOP.stars.slice(0,3);
-  $('top-r').innerHTML=l.length?l.map((x,i)=>'<div class="tc"><i class="r'+(i+1)+'">'+(i+1)+'</i><span>'+escH(x.name)+'</span><small>'+fmt(x.value)+'</small></div>').join(''):'<div class="empty-top">Пока никого. Стань первым</div>';
-}
-function mTop(kind){
-  const list=TOP[kind];
-  $('sh-t').textContent='Топ игроков';
-  $('sh-b').innerHTML='<div class="tabs2"><button data-k="stars" class="'+(kind==='stars'?'on':'')+'">Заработано</button><button data-k="friends" class="'+(kind==='friends'?'on':'')+'">Друзья</button></div>'
-   +(list.length?'<div class="tl">'+list.map((x,i)=>'<div class="tr'+(x.me?' me':'')+'"><i class="r'+(i<3?i+1:0)+'">'+(i+1)+'</i><span>'+escH(x.name)+(x.me?' (ты)':'')+'</span><b>'+fmt(x.value)+'</b></div>').join('')+'</div>':'<p>Пока пусто</p>')
-   +(kind==='stars'&&TOP.my_rank&&TOP.my_rank>20?'<p style="margin:10px 0 0">Твоё место: '+TOP.my_rank+'</p>':'')
-   +'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;
-  document.querySelectorAll('.tabs2 button').forEach(b=>b.onclick=()=>mTop(b.dataset.k));
-  $('sheet').classList.add('on');
-}
-$('top').onclick=()=>TOP&&mTop('stars');
 function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить! Нажми кнопку на главном экране.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:null)}
 function burst(){
   const c=$('claim').getBoundingClientRect(),a=$('app').getBoundingClientRect();
@@ -447,7 +415,7 @@ function render(){
 }
 $('claim').onclick=async()=>{
   if(S&&S.claimed_today){mTomorrow();return}
-  try{S=await api('claim');render();burst();loadTop();
+  try{S=await api('claim');render();burst();
     try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
     const bl=$('bal').closest('.bn');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
     toast('+'+fmt(S.reward)+' получено!')}
@@ -477,7 +445,7 @@ if(u){
   else $('ava').textContent=(u.first_name||'?')[0].toUpperCase();
 }
 if(!tg||!tg.initData){$('out').classList.add('on')}
-else api('me').then(s=>{S=s;render();loadTop()}).catch(()=>toast('Ошибка загрузки'));
+else api('me').then(s=>{S=s;render()}).catch(()=>toast('Ошибка загрузки'));
 </script>
 </body>
 </html>

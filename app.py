@@ -316,24 +316,6 @@ def _name(r):
     return r["first_name"] or (r["username"] and "@" + r["username"]) or f"id {r['id']}"
 
 
-@app.post("/api/top")
-def api_top(x_init_data: str = Header()):
-    u, _ = user_from(x_init_data)
-    with closing(db()) as c:
-        stars = [{"name": _name(r), "value": round(r["earned"], 2), "me": r["id"] == u["id"]}
-                 for r in c.execute("SELECT id,username,first_name,earned FROM users WHERE earned>0 "
-                                    "ORDER BY earned DESC, id LIMIT 20")]
-        friends = [{"name": _name(r), "value": r["n"], "me": r["id"] == u["id"]}
-                   for r in c.execute(
-                       "SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
-                       "WHERE f.ref_active=1 GROUP BY u.id ORDER BY n DESC, u.id LIMIT 20")]
-        me = c.execute("SELECT earned FROM users WHERE id=?", (u["id"],)).fetchone()
-        my_rank = None
-        if me and me["earned"] > 0:
-            my_rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE earned>?", (me["earned"],)).fetchone()[0]
-    return {"stars": stars, "friends": friends, "my_rank": my_rank}
-
-
 def admin_only(uid):
     return bool(ADMIN_ID) and uid == ADMIN_ID
 
