@@ -126,7 +126,7 @@ main::-webkit-scrollbar{display:none}
 .sheet p{margin:0 0 12px;color:var(--dim);font-size:14px;line-height:1.5}
 .sheet .r{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:14px;color:var(--dim)}.sheet .r b{color:var(--txt)}
 .sheet .go{width:100%;margin-top:14px;border:0;border-radius:16px;padding:15px;font-size:15px;font-weight:800;color:var(--on);background:var(--grad);box-shadow:0 8px 28px rgba(255,184,0,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:8px}.sheet .go:active{transform:scale(.96)}
-.sheet .go.alt{background:rgba(255,184,0,.12);color:var(--pink);box-shadow:inset 0 0 0 1.5px rgba(255,184,0,.5);margin-top:8px}.sheet .go.ghost{background:rgba(255,255,255,.07);color:var(--txt);box-shadow:none;margin-top:8px}
+.sheet .go.low{background:rgba(255,184,0,.14);color:var(--pink);box-shadow:inset 0 0 0 1px rgba(255,184,0,.35)}.sheet .go.alt{background:rgba(255,184,0,.12);color:var(--pink);box-shadow:inset 0 0 0 1.5px rgba(255,184,0,.5);margin-top:8px}.sheet .go.ghost{background:rgba(255,255,255,.07);color:var(--txt);box-shadow:none;margin-top:8px}
 .card.fl .empty{padding:18px 0 14px}.card.fl .empty .go{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;font-size:14px;border-radius:13px;width:100%;border:0;font-weight:800;color:var(--on);background:var(--grad)}
 .bal,.mini,.wcard,.orb{cursor:pointer}
 .streak{padding:12px 14px;cursor:pointer}.sr-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin-bottom:10px}.sr-top b{color:var(--txt);font-size:14px}.sr-top em{font-style:normal;font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -143,7 +143,7 @@ button,.mini,.wcard,.card,nav button,.tier{position:relative;overflow:hidden}
 .claim{overflow:visible}
 .rp{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,224,130,.55),rgba(255,184,0,0) 70%);transform:scale(0);animation:rp .65s ease-out forwards}
 @keyframes rp{to{transform:scale(1);opacity:0}}
-.invite:after,.wd:not(:disabled):after,.sheet .go:not(.ghost):after,.tier .buy:not(:disabled):after,nav button.on:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+.invite:after,.wd:not(:disabled):not(.low):after,.sheet .go:not(.ghost):not(.low):after,.tier .buy:not(:disabled):after,nav button.on:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 3.8s ease-in-out infinite}
 @keyframes shine{0%,55%{left:-70%}100%{left:130%}}
 .orb:before{content:"";position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle,rgba(255,184,0,.35),transparent 68%);filter:blur(14px);animation:glow 2.6s ease-in-out infinite}
@@ -327,7 +327,7 @@ function closeM(){$('sheet').classList.remove('on')}
 function openM(title,big,text,rows,btn,btn2,btn3){
   $('sh-t').textContent=title;
   $('sh-b').innerHTML=(big?'<div class="big">'+big+'</div>':'')+(text?'<p>'+text+'</p>':'')+(rows||[]).map(r=>'<div class="r"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')
-    +(btn?'<button class="go" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+(btn3?'<button class="go alt" id="sh-go3">'+btn3.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
+    +(btn?'<button class="go'+(btn.low?' low':'')+'" id="sh-go">'+(btn.inv?INV_ICON:'')+btn.t+'</button>':'')+(btn2?'<button class="go alt" id="sh-go2">'+btn2.t+'</button>':'')+(btn3?'<button class="go alt" id="sh-go3">'+btn3.t+'</button>':'')+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;if(btn)$('sh-go').onclick=()=>{closeM();btn.f()};if(btn2)$('sh-go2').onclick=()=>{btn2.f()};if(btn3)$('sh-go3').onclick=()=>{btn3.f()};
   $('sheet').classList.add('on');
 }
@@ -339,7 +339,7 @@ function invite(){
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
-function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',f:()=>$('wd').onclick()},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
+function mBalance(){openM('Баланс звёзд',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]],{t:Math.floor(S.balance)>=S.min_withdraw?'Вывести '+Math.floor(S.balance):'Вывести (мин. '+S.min_withdraw+')',low:Math.floor(S.balance)<S.min_withdraw,f:()=>$('wd').onclick()},{t:'История выплат',f:mHistory},{t:'Купить статус',f:mStatus})}
 function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB,{t:'Купить статус',f:mStatus})}
 function mFriends(){openM('Друзья',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
