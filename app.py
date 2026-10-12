@@ -22,9 +22,9 @@ WELCOME_FILE_ID = None
 BASE_REWARD = 1.0
 # Статусы за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
 STATUSES = {
-    "gold": (100, 1, "Gold"),
-    "platinum": (350, 3, "Platinum"),
-    "diamond": (1000, 8, "Diamond"),
+    "gold": (25, 1.2, "Gold"),
+    "platinum": (100, 5, "Platinum"),
+    "diamond": (500, 18, "Diamond"),
 }
 REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
