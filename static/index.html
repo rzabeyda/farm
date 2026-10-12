@@ -202,7 +202,7 @@ nav button.on img{animation:tw 3s ease-in-out infinite}
 b.t-gold,b.t-diamond{background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 3s linear infinite}
 b.t-gold{background-image:linear-gradient(90deg,#ffb800,#fff1a8,#ffb800)}b.t-diamond{background-image:linear-gradient(90deg,#ff2bd6,#ffb0f0,#ff2bd6)}
 #sk-n,#st-name:not(.t-gold):not(.t-platinum):not(.t-diamond){background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.card.me{position:relative}.badge{margin-left:auto;display:block;background:rgba(255,255,255,.08);color:var(--dim);border:1px solid var(--line);font-size:11.5px;font-weight:800;letter-spacing:.4px;padding:5px 11px;border-radius:99px;text-transform:uppercase}
+.card.me{position:relative}.badge{cursor:pointer;transition:transform .15s;margin-left:auto;display:block;background:rgba(255,255,255,.08);color:var(--dim);border:1px solid var(--line);font-size:11.5px;font-weight:800;letter-spacing:.4px;padding:5px 11px;border-radius:99px;text-transform:uppercase}
 .card.me.s-gold,.card.me.s-platinum,.card.me.s-diamond{border-width:1.5px}
 .card.me.s-gold{border-color:rgba(255,200,60,.7);background:linear-gradient(135deg,rgba(255,214,70,.2),rgba(255,140,0,.05) 65%);animation:gl-g 2.8s ease-in-out infinite}
 .card.me.s-platinum{border-color:rgba(225,234,248,.7);background:linear-gradient(135deg,rgba(235,242,255,.18),rgba(150,165,190,.05) 65%);animation:gl-p 3s ease-in-out infinite}
@@ -210,7 +210,7 @@ b.t-gold{background-image:linear-gradient(90deg,#ffb800,#fff1a8,#ffb800)}b.t-dia
 .card.me.s-gold .ava{box-shadow:0 0 0 2.5px #ffc01f,0 0 22px rgba(255,184,0,.6)}
 .card.me.s-platinum .ava{box-shadow:0 0 0 2.5px #dfe7f3,0 0 22px rgba(210,222,245,.55)}
 .card.me.s-diamond .ava{box-shadow:0 0 0 2.5px #ff2bd6,0 0 24px rgba(255,43,214,.7)}
-.card.me[class*=s-] .badge{border-color:transparent}
+.badge:active{transform:scale(.9)}.card.me[class*=s-] .badge{border-color:transparent}
 .card.me.s-gold .badge{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}
 .card.me.s-platinum .badge{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}
 .card.me.s-diamond .badge{background:linear-gradient(135deg,#ff2bd6,#a100ff);color:#fff}
@@ -440,6 +440,7 @@ function doWithdraw(){
 $('inv').onclick=invite;
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('stcard').onclick=()=>S&&mStatus();
+$('badge').onclick=()=>S&&mStatus();
 $('streak').onclick=()=>S&&mStreak();
 document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
 document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
