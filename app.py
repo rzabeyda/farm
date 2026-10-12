@@ -3,10 +3,10 @@ from contextlib import asynccontextmanager, closing
 from datetime import datetime, timezone
 from urllib.parse import parse_qsl
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup,
-                           MenuButtonWebApp, Message, WebAppInfo)
+                           LabeledPrice, MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +20,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(HERE, "freestars.db")
 WELCOME_FILE_ID = None
 BASE_REWARD = 1.0
+# Статусы за Telegram Stars: (цена в ⭐, бонус к награде в день, название)
+STATUSES = {
+    "gold": (100, 1, "Gold"),
+    "platinum": (350, 3, "Platinum"),
+    "diamond": (1000, 8, "Diamond"),
+}
 REF_BONUS = 1.0  # +1 звезда рефереру каждый раз, когда его друг нажимает «Я не бот»
 
 bot = Bot(BOT_TOKEN)
@@ -43,7 +49,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS withdrawals(
           id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
           amount REAL NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS payments(
+          charge_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, status TEXT NOT NULL,
+          amount INTEGER NOT NULL, created INTEGER NOT NULL);
         """)
+        try:
+            c.execute("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
         c.commit()
 
 
@@ -86,7 +99,22 @@ def verify_init_data(init_data: str) -> dict:
 
 def rate(c, uid):
     n = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
-    return n, BASE_REWARD
+    return n, BASE_REWARD + status_bonus(c, uid)
+
+
+def status_of(c, uid):
+    r = c.execute("SELECT status FROM users WHERE id=?", (uid,)).fetchone()
+    return r["status"] if r and r["status"] in STATUSES else ""
+
+
+def status_bonus(c, uid):
+    s = status_of(c, uid)
+    return STATUSES[s][1] if s else 0
+
+
+def status_price(c, uid, key):
+    cur = status_of(c, uid)
+    return STATUSES[key][0] - (STATUSES[cur][0] if cur else 0)
 
 
 def state(c, uid):
@@ -105,6 +133,9 @@ def state(c, uid):
         "friends_today": ftoday, "friends": fr,
         "claimed_today": u["last_claim"] == today(), "streak": streak,
         "min_withdraw": MIN_WITHDRAW, "pending": round(pend, 4),
+        "status": status_of(c, uid), "status_bonus": status_bonus(c, uid),
+        "statuses": [{"key": k, "name": v[2], "price": v[0], "bonus": v[1], "pay": status_price(c, uid, k)}
+                     for k, v in STATUSES.items()],
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
     }
 
@@ -192,6 +223,58 @@ async def api_withdraw(x_init_data: str = Header()):
         except Exception:
             pass
     return s
+
+
+@app.post("/api/buy/{key}")
+async def api_buy(key: str, x_init_data: str = Header()):
+    u, _ = user_from(x_init_data)
+    if key not in STATUSES:
+        raise HTTPException(404)
+    with closing(db()) as c:
+        ensure_user(c, u["id"], u.get("username"), u.get("first_name"))
+        c.commit()
+        cur = status_of(c, u["id"])
+        if cur and STATUSES[cur][0] >= STATUSES[key][0]:
+            raise HTTPException(400, "have")
+        pay = status_price(c, u["id"], key)
+    name = STATUSES[key][2]
+    link = await bot.create_invoice_link(
+        title=f"Статус {name}", description=f"+{STATUSES[key][1]} звезд к доходу каждый день, навсегда",
+        payload=f"status:{key}:{u['id']}", currency="XTR", prices=[LabeledPrice(label=f"Статус {name}", amount=pay)])
+    return {"link": link}
+
+
+@dp.pre_checkout_query()
+async def pre_checkout(q: PreCheckoutQuery):
+    ok = False
+    try:
+        _, key, uid = q.invoice_payload.split(":")
+        with closing(db()) as c:
+            cur = status_of(c, int(uid))
+            ok = key in STATUSES and int(uid) == q.from_user.id and not (cur and STATUSES[cur][0] >= STATUSES[key][0])
+    except Exception:
+        pass
+    await q.answer(ok=ok, error_message=None if ok else "Этот статус уже недоступен для покупки")
+
+
+@dp.message(F.successful_payment)
+async def paid_status(m: Message):
+    sp = m.successful_payment
+    _, key, uid = sp.invoice_payload.split(":")
+    uid = int(uid)
+    with closing(db()) as c:
+        if c.execute("SELECT 1 FROM payments WHERE charge_id=?", (sp.telegram_payment_charge_id,)).fetchone():
+            return
+        c.execute("INSERT INTO payments(charge_id,user_id,status,amount,created) VALUES(?,?,?,?,?)",
+                  (sp.telegram_payment_charge_id, uid, key, sp.total_amount, int(time.time())))
+        c.execute("UPDATE users SET status=? WHERE id=?", (key, uid))
+        c.commit()
+    await m.answer(f"Статус {STATUSES[key][2]} активирован: +{STATUSES[key][1]} звезд к доходу каждый день")
+    if ADMIN_ID:
+        try:
+            await bot.send_message(ADMIN_ID, f"Покупка статуса {STATUSES[key][2]}: {sp.total_amount} звёзд от id {uid}")
+        except Exception:
+            pass
 
 
 @app.post("/api/history")

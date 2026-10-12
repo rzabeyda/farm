@@ -129,6 +129,12 @@ main::-webkit-scrollbar{display:none}
 .streak{padding:12px 14px;cursor:pointer}.sr-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin-bottom:10px}.sr-top b{color:var(--txt);font-size:14px}.sr-top em{font-style:normal;font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.days i{display:grid;place-items:center;height:34px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--dim);font-style:normal;font-size:11.5px;font-weight:700}.days i.on{background:var(--grad);border-color:transparent;color:var(--on)}.days i.cur{border-color:var(--pink);color:var(--txt)}
 .hist{width:100%;margin-top:8px;border:0;background:none;color:var(--dim);font-size:13px;font-weight:600;padding:6px}.hist:active{color:var(--txt)}
+.stcard{padding:12px 14px;cursor:pointer}.st-sub{font-size:12.5px;color:var(--dim)}
+.tier{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;margin-top:10px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.tier b{display:block;font-size:16px;margin-bottom:2px}.tier small{color:var(--dim);font-size:12.5px}
+.tier .buy{flex:none;border:0;border-radius:13px;padding:10px 14px;font-weight:800;font-size:13.5px;color:var(--on);background:var(--grad);display:flex;align-items:center;gap:6px}.tier .buy img{width:15px;height:15px}
+.tier .buy:disabled{background:rgba(255,255,255,.08);color:var(--dim)}
+.t-gold b,b.t-gold{color:#ffc01f}.t-platinum b,b.t-platinum{color:#d6dde8}.t-diamond b,b.t-diamond{color:#6fd3ff}.tier.cur{border-color:var(--pink)}
 .note{text-align:center;color:var(--dim);font-size:12.5px;line-height:1.5;padding:0 10px}
 
 /* ===== навигация ===== */
@@ -195,6 +201,10 @@ nav button:active{transform:scale(.93)}
         <div class="mini"><small>Доход в день</small><b><em id="p-daily">1</em></b></div>
         <div class="mini"><small>Друзья сегодня</small><b id="p-total">0</b></div>
       </div>
+      <div class="card stcard" id="stcard">
+        <div class="sr-top"><span>Статус</span><b id="st-name">Нет</b></div>
+        <div class="st-sub" id="st-sub"></div>
+      </div>
       <div class="card streak" id="streak">
         <div class="sr-top"><span>Стрик</span><b><em id="sk-n">0</em> дн. подряд</b></div>
         <div class="days" id="sk-days"></div>
@@ -250,7 +260,7 @@ function invite(){
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
 function mBalance(){openM('Баланс',fmt(S.balance),'Твои накопленные звёзды Telegram Stars.',[['Минимум для вывода',S.min_withdraw],['На выводе',fmt(S.pending)],['Серия дней',S.streak]])}
-function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB)}
+function mIncome(){openM('Доход в день',fmt(S.max_daily),'1 звезда за твою кнопку «Я не бот!» плюс по 1 звезде за каждого друга, который нажал её сегодня.',[['Своя кнопка','1'],['Бонус статуса','+'+fmt(S.status_bonus)],['Друзей всего',S.refs],['Максимум, если нажмут все',fmt(S.max_daily)]],INVB)}
 function mFriends(){openM('Друзья сегодня',S.friends_today+' / '+S.refs,'Каждый друг, нажавший «Я не бот» за день, приносит тебе +1 звезду. Чем больше друзей, тем выше доход.',[['Нажали сегодня',S.friends_today],['Ещё не нажали',Math.max(0,S.refs-S.friends_today)]],INVB)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'Звезда за сегодня уже получена. Новая будет доступна после 00:00 по UTC.',[['Серия дней',S.streak],['Завтра можно получить','+'+fmt(S.daily)]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' дн.','Заходи и нажимай «Я не бот!» каждый день. Если пропустить день, серия начнётся заново.',[['Текущая серия',S.streak],['Сегодня',S.claimed_today?'получено':'ещё не получено']],S.claimed_today?INVB:null)}
@@ -259,6 +269,26 @@ async function mHistory(){
   const st={pending:'В обработке',paid:'Выплачено'};
   const d=t=>{const x=new Date(t*1000);return x.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+' '+x.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
   openM('История выплат','',h.length?'':'Пока нет выплат. Накопи минимум '+S.min_withdraw+' звёзд и нажми «Вывести».',h.map(w=>[d(w.created)+' · '+(st[w.status]||w.status),'<span style="color:'+(w.status==='paid'?'#34d399':'var(--pink)')+'">'+Math.floor(w.amount)+'</span>']));
+}
+const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond'};
+function mStatus(){
+  $('sh-t').textContent='Статусы';
+  $('sh-b').innerHTML='<p>Статус навсегда увеличивает твою награду в день. Покупка за Telegram Stars. Более высокий статус заменяет предыдущий, оплачивается только разница.</p>'
+   +S.statuses.map(s=>{const own=S.status===s.key,low=!own&&s.pay<=0;
+     return '<div class="tier '+SCOL[s.key]+(own?' cur':'')+'"><div><b>'+s.name+'</b><small>+'+s.bonus+' звезд в день · цена '+s.price+'</small></div>'
+     +'<button class="buy" data-k="'+s.key+'"'+(own||low?' disabled':'')+'>'+(own?'Активен':low?'Ниже':'<img src="/static/star.png" alt="">'+s.pay)+'</button></div>'}).join('')
+   +'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;
+  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=()=>buy(b.dataset.k));
+  $('sheet').classList.add('on');
+}
+async function buy(k){
+  try{
+    const r=await fetch('/api/buy/'+k,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
+    if(!r.ok)throw 0;const {link}=await r.json();
+    if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
+    tg.openInvoice(link,async st=>{if(st==='paid'){closeM();S=await api('me');render();toast('Статус активирован');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
+  }catch(e){toast('Не удалось создать счёт')}
 }
 function mWithdraw(){const b=Math.floor(S.balance),l=S.min_withdraw-b;openM('Вывод звёзд',b+' / '+S.min_withdraw,l>0?'Накопи ещё '+l+', чтобы вывести звёзды в Telegram Stars.':'Можно выводить! Нажми кнопку на главном экране.',[['Минимум',S.min_withdraw],['На выводе',fmt(S.pending)]],l>0?INVB:null)}
 function burst(){
@@ -287,6 +317,7 @@ function render(){
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+esc(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   const sk=S.streak,k=sk%7,full=sk>0&&k===0;$('sk-n').textContent=sk;
   $('sk-days').innerHTML=[1,2,3,4,5,6,7].map(d=>'<i class="'+((full||d<=k)?'on':(d===k+1&&!S.claimed_today?'cur':''))+'">'+d+'</i>').join('');
+  const cs=S.statuses.find(x=>x.key===S.status);$('st-name').textContent=cs?cs.name:'Нет';$('st-name').className=cs?SCOL[cs.key]:'';$('st-sub').textContent=cs?'+'+cs.bonus+' звезд в день. Нажми, чтобы улучшить':'Купи статус и получай больше звезд каждый день';
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   $('bar').style.width=Math.min(100,b/S.min_withdraw*100)+'%';
   $('wd').disabled=b<S.min_withdraw;
@@ -307,6 +338,7 @@ $('wd').onclick=()=>{
 $('inv').onclick=invite;
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('hist').onclick=()=>S&&mHistory();
+$('stcard').onclick=()=>S&&mStatus();
 $('streak').onclick=()=>S&&mStreak();
 document.querySelectorAll('.mini')[0].onclick=()=>S&&mIncome();
 document.querySelectorAll('.mini')[1].onclick=()=>S&&mFriends();
