@@ -142,7 +142,9 @@ def verify_init_data(init_data: str) -> dict:
 
 
 def rate(c, uid):
-    n = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
+    yday = datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
+    # активный друг = нажимал кнопку сегодня или вчера; пропустил дальше - не приносит и не считается в доходе
+    n = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND last_claim>=?", (uid, yday)).fetchone()[0]
     return n, BASE_REWARD + status_bonus(c, uid)
 
 
