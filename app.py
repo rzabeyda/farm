@@ -262,7 +262,7 @@ async def scheduler():
             now = datetime.now(timezone.utc)
             if now.hour >= BACKUP_HOUR and meta_get("backup_day") != today():
                 meta_set("backup_day", today())
-                await send_backup()
+                await asyncio.to_thread(make_backup)
             if now.hour >= REMIND_HOUR and meta_get("remind_day") != today():
                 meta_set("remind_day", today())
                 sent, blocked, total = await run_reminders()
