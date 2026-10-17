@@ -265,9 +265,7 @@ async def scheduler():
                 await asyncio.to_thread(make_backup)
             if now.hour >= REMIND_HOUR and meta_get("remind_day") != today():
                 meta_set("remind_day", today())
-                sent, blocked, total = await run_reminders()
-                if ADMIN_ID:
-                    await bot.send_message(ADMIN_ID, f"Напоминания: отправлено {sent}, заблокировали бота {blocked}, из {total}")
+                await run_reminders()
         except Exception as e:
             print("scheduler:", e)
         await asyncio.sleep(60)
