@@ -571,7 +571,7 @@ function shownKey(){
 function renderHome(){
   const done=S.claimed_today;
   const sk=shownKey(),img=$('sceneImg'),src=art(sk);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
-  {const pc=S.pets.find(p=>p.key===sk);$('animalName').textContent=S.tiers.find(x=>x.key===sk).name+(pc?' ×'+pc.count:'')}
+  {const pc=S.pets.find(p=>p.key===sk);$('animalName').textContent=S.tiers.find(x=>x.key===sk).name+(pc&&sk!=='farmer'?' ×'+pc.count:'')}
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Ферма работает':'ФАРМ';
   $('farmSub').textContent=done?('следующий ФАРМ через '+leftTxt()):(S.farming?'продли ферму на сутки':'запусти ферму');
