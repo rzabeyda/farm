@@ -36,6 +36,8 @@ NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493"
              "LibertyFigure-107834", "LibertyFigure-210306", "LibertyFigure-97753", "LibertyFigure-235419", "LibertyFigure-5044",
              "SnoopDogg-392692", "LibertyFigure-104039", "LibertyFigure-34553"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
+NFT_PRICE_TOP = 600000                                  # цена портфелей (NFT_TOP)
+NFT_TOP = ["MoodPack-128844", "MoodPack-92875", "MoodPack-148916", "MoodPack-84020", "MoodPack-141418"]
 NFT_PRICE_HIGH = 400000                                 # цена новых подарков (NFT_PREMIUM)
 NFT_PREMIUM = set(NFT_OTHER) | {"PoolFloat-202928", "PoolFloat-20370", "PoolFloat-108354"}
 
@@ -127,14 +129,14 @@ def init_db():
             c.execute("INSERT INTO meta(k,v) VALUES('pets5','1')")
         # NFT для обмена: каждая ссылка добавляется один раз. Повторы в списке, а также NFT, которые уже есть в базе
         # (проданные или снятые тоже), заново не добавляются.
-        for name in dict.fromkeys([f"PoolFloat-{n}" for n in NFT_IDS] + NFT_OTHER):
+        for name in dict.fromkeys([f"PoolFloat-{n}" for n in NFT_IDS] + NFT_OTHER + NFT_TOP):
             slug, nid = name.rsplit("-", 1)
             url = f"https://t.me/nft/{name}"
             if not c.execute("SELECT 1 FROM rewards WHERE url=?", (url,)).fetchone():
                 title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", slug) + f" #{nid}"
                 img = f"static/nft/{nid}.jpg" if slug == "PoolFloat" else f"static/nft/{slug.lower()}-{nid}.jpg"
                 c.execute("INSERT INTO rewards(title,descr,price,stock,created,img,url) VALUES(?,?,?,?,?,?,?)",
-                          (title, "Коллекционный NFT, один экземпляр", NFT_PRICE_HIGH if name in NFT_PREMIUM else NFT_PRICE, 1,
+                          (title, "Коллекционный NFT, один экземпляр", NFT_PRICE_TOP if name in NFT_TOP else NFT_PRICE_HIGH if name in NFT_PREMIUM else NFT_PRICE, 1,
                            int(time.time()), img, url))
         c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('nft_seed','1')")
         c.commit()
