@@ -621,8 +621,6 @@ function mPet(k){
    +(!free&&cnt>1?'<div class="r"><span>Все вместе</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
    +'<div class="r"><span>Без захода</span><b>фармится минимум 24 часа</b></div>'
    +(S.is_admin&&np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
-   +(S.is_admin&&np>0?'<p style="margin:10px 0 0;font-size:12px">Срок до NFT ориентировочный: при цене NFT '+sp(np)+' '+coinsW(np)+' и ФАРМ каждый день (видно только тебе).</p>':'')
-   +(np>0?'<p style="margin:10px 0 0;font-size:12px">NFT в ограниченном количестве, их могут разобрать раньше.</p>':'')
    +(free?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">'+(cnt>0?'Купить ещё за ':'Завести за ')+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
