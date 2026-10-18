@@ -294,6 +294,7 @@ nav button{font-size:11px}
 #home .nftban{margin-top:0}
 .owned{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 12px;cursor:pointer}
 .oc{display:flex;align-items:center;gap:6px;padding:3px 11px 3px 4px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:13px;font-weight:800}
+.oc{cursor:pointer}.oc.on{border-color:var(--pink);background:rgba(255,184,0,.16)}
 .oc img{width:28px;height:28px;border-radius:50%;object-fit:cover}
 .cnt{font-size:14px;color:var(--pink);font-weight:800;margin-left:4px}
 .tier.pet{height:106px;min-height:106px;align-items:center;gap:12px;padding:0 14px 0 12px;box-sizing:border-box}
@@ -568,7 +569,8 @@ function renderHome(){
   $('animalName').textContent=S.tiers.find(x=>x.key===sk).name;
   const ow=S.pets.filter(p=>p.key!=='farmer'),oe=$('owned');
   oe.style.display=ow.length?'':'none';
-  oe.innerHTML=ow.length?S.pets.map(p=>'<span class="oc"><img src="'+art(p.key)+'" alt=""><span>'+escH(p.key==='farmer'?'Фермер':(S.tiers.find(x=>x.key===p.key).short||p.name))+' ×'+p.count+'</span></span>').join(''):'';
+  oe.innerHTML=ow.length?S.pets.map(p=>'<span class="oc'+(p.key===sk?' on':'')+'" data-k="'+p.key+'"><img src="'+art(p.key)+'" alt=""><span>'+escH(p.key==='farmer'?'Фермер':(S.tiers.find(x=>x.key===p.key).short||p.name))+' ×'+p.count+'</span></span>').join(''):'';
+  oe.querySelectorAll('.oc').forEach(e=>e.onclick=()=>{try{localStorage.setItem('fs_show',e.dataset.k)}catch(x){}try{tg.HapticFeedback.selectionChanged()}catch(x){}renderHome()});
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Ферма работает':'ФАРМ';
   $('farmSub').textContent=done?('следующий ФАРМ через '+leftTxt()):(S.farming?'продли ферму на сутки':'запусти ферму');
