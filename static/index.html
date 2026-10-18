@@ -296,6 +296,12 @@ i.r1,i.r2,i.r3,i.r0{display:grid;place-items:center;width:24px;height:24px;borde
 i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}i.r3{background:linear-gradient(135deg,#f0b27a,#a8641f);color:#2b1400}
 
 /* ===== ферма ===== */
+.shopcard{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;margin-bottom:12px;padding:14px 16px;border-radius:20px;border:1px solid rgba(255,192,31,.55);color:var(--txt);background:linear-gradient(135deg,rgba(255,214,70,.22),rgba(255,140,0,.07));box-shadow:0 0 24px rgba(255,184,0,.2)}
+.shopcard b{font-size:17px}.shopcard small{color:var(--dim);font-size:12.5px}
+.rw{display:flex;align-items:center;gap:12px;padding:13px 14px;margin-top:10px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.rw .rt{flex:1;min-width:0}.rw .rt b{display:block;font-size:15.5px}.rw .rt small{display:block;font-size:12.5px;color:var(--dim);margin-top:2px}
+.rw .buy{flex:none;border:0;border-radius:13px;padding:10px 13px;font-weight:800;font-size:13.5px;color:var(--on);background:var(--grad);display:flex;align-items:center;gap:5px}.rw .buy img{width:15px;height:15px}
+.rw .buy:disabled{background:rgba(255,255,255,.08);color:var(--dim)}
 .petbig{width:min(76vw,300px);aspect-ratio:1;margin:2px auto 12px;border-radius:32px;overflow:hidden;border:2px solid rgba(255,192,31,.55);box-shadow:0 0 44px rgba(255,184,0,.28),0 14px 36px rgba(0,0,0,.5)}
 .petbig img{display:block;width:100%;height:100%;object-fit:cover}
 .tier.pet{cursor:pointer}
@@ -353,6 +359,7 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
     </section>
 
     <section class="tab" id="upg">
+      <button class="shopcard" id="shopcard"><b>Магазин наград</b><small>Коллекционные призы за монеты. Тираж ограничен</small></button>
       <div class="card ucap" id="ucap">
         <div class="lbl"><span id="u-label">Производство</span><b id="u-rate">0</b></div>
         <p class="mut">Улучшения покупаются за монеты. Монеты в Telegram Stars не обмениваются.</p>
@@ -530,7 +537,7 @@ function renderProfile(){
 }
 function renderAll(){renderHome();renderUpg();renderProfile()}
 /* ---------- окна ---------- */
-function mBalance(){openM('Твои монеты',fmt(S.coins),'Монеты зарабатываются кнопкой ФАРМ и продажей ресурсов. Они тратятся на улучшения фермы. В Telegram Stars монеты не обмениваются.',[['Производство','+'+dec(S.rate)+' '+S.res_name+'/час'],['Цена продажи',dec(S.sell_price)+' монет за шт.'],['Серия дней',S.streak]],{t:'Улучшения',f:()=>goTab('upg')},{t:'Питомцы',f:mPets},{t:'Рейтинг сезона',f:mRating})}
+function mBalance(){openM('Твои монеты',fmt(S.coins),'Монеты зарабатываются кнопкой ФАРМ и продажей ресурсов. Они тратятся на улучшения фермы. В Telegram Stars монеты не обмениваются.',[['Производство','+'+dec(S.rate)+' '+S.res_name+'/час'],['Цена продажи',dec(S.sell_price)+' монет за шт.'],['Серия дней',S.streak]],{t:'Улучшения',f:()=>goTab('upg')},{t:'Магазин наград',f:mShop},{t:'Рейтинг сезона',f:mRating})}
 function mBarn(){openM('Склад','',S.animal_name+' приносит '+S.res_name+' каждый час. Склад вмещает ресурсы на '+dec(S.cap_h)+' ч, потом производство останавливается, пока ты не продашь ресурсы. Увеличить склад можно улучшением «Амбар».',[['Производство','+'+dec(S.rate)+' в час'],['Вместимость',Math.floor(S.res_cap)],['Цена продажи',dec(S.sell_price)+' монет']],{t:'Улучшения',f:()=>goTab('upg')})}
 function mFriends(){openM('Друзья',S.friends.length,'Когда друг в первый раз нажмёт ФАРМ, ты получишь <b>+'+sp(S.ref_bonus)+' монет</b>, а он стартовые <b>+'+sp(S.ref_bonus_friend)+'</b>. В списке зелёная галочка у тех, кто нажал ФАРМ сегодня, красный крестик у остальных.',[['Нажали сегодня',S.friends_today],['Всего друзей',S.friends.length]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Нажимай ФАРМ каждый день. С каждым днём серии награда растёт на 5% (до 10 дней). Пропустил день, серия начнётся заново.',[['Награда за следующий ФАРМ','+'+sp(S.daily_reward)],['Сегодня',S.claimed_today?'ФАРМ нажат':'ещё нет']],S.claimed_today?INVB:null)}
@@ -579,6 +586,26 @@ async function mRating(){
   $('sh-x').onclick=closeM;$('sheet').classList.add('on');
   return r;
 }
+async function mShop(){
+  let d=null;try{d=await api('shop')}catch(e){toast('Не удалось загрузить магазин');return}
+  $('sh-t').textContent='Магазин наград';
+  const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
+  $('sh-b').innerHTML='<p>Коллекционные награды за монеты. Тираж каждой ограничен. Награду выдаёт администратор вручную на твой @username в Telegram. Монеты в Telegram Stars не обмениваются.</p>'
+   +(d.items.length?'<div class="tl">'+d.items.map(i=>'<div class="rw"><div class="rt"><b>'+escH(i.title)+'</b><small>'+escH(i.descr||'Коллекционная награда')+' · осталось '+i.stock+'</small></div>'
+     +'<button class="buy" data-id="'+i.id+'"'+(S.coins<i.price?' disabled':'')+'><img src="/static/star.png" alt="">'+fmtS(i.price)+'</button></div>').join('')+'</div>':'<p>Пока наград нет. Скоро появятся коллекционные призы.</p>')
+   +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;
+  document.querySelectorAll('#sh-b .rw .buy:not(:disabled)').forEach(b=>b.onclick=()=>buyReward(b.dataset.id));
+  $('sheet').classList.add('on');
+}
+async function buyReward(id){
+  try{
+    const r=await fetch('/api/shop/buy/'+id,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
+    if(!r.ok){const e=new Error(r.status);e.detail=(await r.json().catch(()=>({}))).detail;throw e}
+    setS(await r.json());renderAll();closeM();
+    toast('Заказ принят! Администратор выдаст награду');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
+  }catch(e){toast(e.detail==='username'?'Задай username в настройках Telegram':e.detail==='stock'?'Награда закончилась':e.detail==='coins'?'Не хватает монет':'Не удалось оформить заказ')}
+}
 async function loadRank(){try{const r=await api('rating');$('p-rank').textContent=r.rank?'#'+r.rank:'—'}catch(e){}}
 function mInfo(){
   $('sh-t').textContent='Как играть';
@@ -588,7 +615,8 @@ function mInfo(){
    +'<div class="inf"><h4>3. Улучшения</h4><p>За монеты улучшай <b>Амбар</b> (больше места), <b>Кормушку</b> (больше ресурсов) и <b>Рынок</b> (дороже продажа).</p></div>'
    +'<div class="inf"><h4>4. Питомцы</h4><p>За Telegram Stars можно завести уточку, зайку, кошку или лягушку: больше ресурсов и награда за ФАРМ. Это покупка игровых предметов, а не вклад: монеты в Stars не обмениваются.</p></div>'
    +'<div class="inf"><h4>5. Друзья</h4><p>Когда друг впервые нажмёт ФАРМ, ты получишь <b>+'+sp(S?S.ref_bonus:200)+' монет</b>.</p></div>'
-   +'<div class="inf"><h4>6. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Призы не гарантируются, условия объявляет администратор. Смотри «Рейтинг» в профиле.</p></div>'
+   +'<div class="inf"><h4>6. Магазин наград</h4><p>За монеты можно получить коллекционные награды в ограниченном количестве. Их выдаёт администратор вручную. Монеты в Telegram Stars не обмениваются.</p></div>'
+   +'<div class="inf"><h4>7. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Призы не гарантируются, условия объявляет администратор. Смотри «Рейтинг» в профиле.</p></div>'
    +'</div><button class="go" id="sh-go">Показать обучение</button><button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;$('sh-go').onclick=()=>{closeM();showOb()};
   $('sheet').classList.add('on');
@@ -626,6 +654,7 @@ $('stcard').onclick=()=>S&&mPets();
 $('badge').onclick=()=>S&&mPets();
 $('m-rank').onclick=()=>S&&mRating();
 $('ucap').onclick=()=>S&&mBarn();
+$('shopcard').onclick=()=>S&&mShop();
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
 setInterval(()=>{
   if(!S)return;

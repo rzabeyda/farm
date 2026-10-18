@@ -57,6 +57,12 @@ def init_db():
           amount INTEGER NOT NULL, created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id));
+        CREATE TABLE IF NOT EXISTS rewards(
+          id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, descr TEXT NOT NULL DEFAULT '',
+          price INTEGER NOT NULL, stock INTEGER NOT NULL, active INTEGER NOT NULL DEFAULT 1, created INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS reward_orders(
+          id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, reward_id INTEGER NOT NULL,
+          title TEXT NOT NULL, price INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created INTEGER NOT NULL);
         """)
         for ddl in ("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT ''",
                     "ALTER TABLE users ADD COLUMN last_remind TEXT",
@@ -411,6 +417,56 @@ def api_upgrade(key: str, x_init_data: str = Header()):
         return state(c, u["id"])
 
 
+@app.post("/api/shop")
+def api_shop(x_init_data: str = Header()):
+    """Магазин наград: коллекционные призы за монеты в ограниченном количестве."""
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        items = [{"id": r["id"], "title": r["title"], "descr": r["descr"], "price": r["price"], "stock": r["stock"]}
+                 for r in c.execute("SELECT id,title,descr,price,stock FROM rewards WHERE active=1 AND stock>0 ORDER BY id")]
+        me = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
+        mine = [{"title": r["title"], "status": r["status"]}
+                for r in c.execute("SELECT title,status FROM reward_orders WHERE user_id=? ORDER BY id DESC LIMIT 20", (u["id"],))]
+    return {"items": items, "coins": round(me["points"], 2) if me else 0, "mine": mine}
+
+
+@app.post("/api/shop/buy/{rid}")
+async def api_shop_buy(rid: int, x_init_data: str = Header()):
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
+        rw = c.execute("SELECT * FROM rewards WHERE id=? AND active=1", (rid,)).fetchone()
+        if not row or not rw:
+            c.rollback()
+            raise HTTPException(404)
+        if not u.get("username"):
+            c.rollback()
+            raise HTTPException(400, "username")
+        if rw["stock"] <= 0:
+            c.rollback()
+            raise HTTPException(400, "stock")
+        if row["points"] < rw["price"]:
+            c.rollback()
+            raise HTTPException(400, "coins")
+        c.execute("UPDATE users SET points=points-? WHERE id=?", (rw["price"], u["id"]))
+        c.execute("UPDATE rewards SET stock=stock-1 WHERE id=?", (rid,))
+        cur = c.execute("INSERT INTO reward_orders(user_id,reward_id,title,price,created) VALUES(?,?,?,?,?)",
+                        (u["id"], rid, rw["title"], rw["price"], int(time.time())))
+        oid = cur.lastrowid
+        c.commit()
+        s = state(c, u["id"])
+    s["order"] = oid
+    s["reward_title"] = rw["title"]
+    if ADMIN_ID:
+        try:
+            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"Выдано #{oid}", callback_data=f"ord:{oid}")]])
+            await bot.send_message(ADMIN_ID, f"@{u['username']} заказал «{rw['title']}» за {rw['price']} монет\n#{oid}", reply_markup=kb)
+        except Exception as e:
+            print("order notify:", e)
+    return s
+
+
 @app.post("/api/rating")
 def api_rating(x_init_data: str = Header()):
     u, _ = user_from(x_init_data)
@@ -490,6 +546,7 @@ def admin_kb():
          InlineKeyboardButton(text="Рейтинг сезона", callback_data="adm:rating")],
         [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top"),
          InlineKeyboardButton(text="Новый сезон", callback_data="adm:ns")],
+        [InlineKeyboardButton(text="Заказы наград", callback_data="adm:orders")],
         [InlineKeyboardButton(text="Разослать напоминания", callback_data="adm:remind"),
          InlineKeyboardButton(text="Бэкап сейчас", callback_data="adm:backup")]])
 
@@ -524,6 +581,79 @@ def stats_text():
 async def admin(m: Message):
     if admin_only(m.from_user.id):
         await m.answer(stats_text(), reply_markup=admin_kb())
+
+
+def add_reward(title, price, stock, descr=""):
+    with closing(db()) as c:
+        cur = c.execute("INSERT INTO rewards(title,descr,price,stock,created) VALUES(?,?,?,?,?)",
+                        (title.strip()[:80], descr.strip()[:300], int(price), int(stock), int(time.time())))
+        c.commit()
+        return cur.lastrowid
+
+
+async def fulfill_order(oid):
+    with closing(db()) as c:
+        row = c.execute("SELECT * FROM reward_orders WHERE id=? AND status='pending'", (oid,)).fetchone()
+        if not row:
+            return None
+        c.execute("UPDATE reward_orders SET status='done' WHERE id=?", (oid,))
+        c.commit()
+    try:
+        await bot.send_message(row["user_id"], f"Твоя награда «{row['title']}» выдана")
+    except Exception:
+        pass
+    return row
+
+
+@dp.message(Command("addreward"))
+async def cmd_addreward(m: Message, command: CommandObject):
+    if not admin_only(m.from_user.id):
+        return
+    parts = [p.strip() for p in (command.args or "").split("|")]
+    if len(parts) < 3 or not parts[1].isdigit() or not parts[2].isdigit() or int(parts[1]) <= 0 or int(parts[2]) <= 0:
+        await m.answer("Использование: /addreward Название | цена в монетах | количество | описание (необязательно)\n"
+                       "Пример: /addreward Коллекционный NFT #1 | 50000 | 10 | Ограниченный тираж")
+        return
+    rid = add_reward(parts[0], parts[1], parts[2], parts[3] if len(parts) > 3 else "")
+    await m.answer(f"Награда #{rid} добавлена: «{parts[0]}», {parts[1]} монет, тираж {parts[2]}")
+
+
+@dp.message(Command("rewards"))
+async def cmd_rewards(m: Message):
+    if not admin_only(m.from_user.id):
+        return
+    with closing(db()) as c:
+        rows = c.execute("SELECT * FROM rewards ORDER BY id").fetchall()
+    text = "Награды:\n\n" + ("\n".join(f"#{r['id']} «{r['title']}» {r['price']} монет, осталось {r['stock']}" +
+                                       ("" if r["active"] else " (снята)") for r in rows) or "Пока нет. /addreward")
+    await m.answer(text + "\n\nСнять награду: /delreward НОМЕР")
+
+
+@dp.message(Command("delreward"))
+async def cmd_delreward(m: Message, command: CommandObject):
+    if not admin_only(m.from_user.id):
+        return
+    a = (command.args or "").strip()
+    if not a.isdigit():
+        await m.answer("Использование: /delreward НОМЕР")
+        return
+    with closing(db()) as c:
+        c.execute("UPDATE rewards SET active=0 WHERE id=?", (int(a),))
+        c.commit()
+    await m.answer(f"Награда #{a} снята с витрины")
+
+
+@dp.callback_query(F.data.startswith("ord:"))
+async def order_cb(q: CallbackQuery):
+    if not admin_only(q.from_user.id):
+        await q.answer()
+        return
+    row = await fulfill_order(int(q.data.split(":")[1]))
+    await show(q, (q.message.text or "") + ("\n\nВыдано" if row else "\n\nУже была выдана"), None)
+    try:
+        await q.answer("Выдано" if row else "Уже выдана")
+    except Exception:
+        pass
 
 
 @dp.message(Command("prize"))
@@ -581,6 +711,20 @@ async def admin_cb(q: CallbackQuery):
                 InlineKeyboardButton(text="Отмена", callback_data="adm:stats")]])
             await show(q, "Начать новый сезон? Очки рейтинга у всех обнулятся (монеты игроков останутся). "
                           "Сначала выплати призы за текущий сезон.", kb)
+    elif parts[1] == "orders":
+        if len(parts) > 3 and parts[2] == "done":
+            note = "Выдано" if await fulfill_order(int(parts[3])) else "Уже выдана"
+        with closing(db()) as c:
+            rows = c.execute("SELECT o.id,o.title,o.price,u.username,u.first_name,u.id uid FROM reward_orders o "
+                             "JOIN users u ON u.id=o.user_id WHERE o.status='pending' ORDER BY o.id LIMIT 10").fetchall()
+        if not rows:
+            await show(q, "Заказов наград нет", admin_kb())
+        else:
+            text = "Заказы наград (нажми, чтобы отметить выданной):\n\n" + "\n".join(
+                f"#{r['id']}: «{r['title']}» за {r['price']} монет, " + (f"@{r['username']}" if r["username"] else _name(r)) for r in rows)
+            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"Выдано #{r['id']}", callback_data=f"adm:orders:done:{r['id']}")]
+                                                       for r in rows] + [[InlineKeyboardButton(text="Назад", callback_data="adm:stats")]])
+            await show(q, text, kb)
     elif parts[1] == "remind":
         sent, blocked, total = await run_reminders()
         note = f"Отправлено {sent}, заблокировали {blocked}, всего {total}"
