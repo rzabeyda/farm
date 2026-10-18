@@ -257,7 +257,7 @@ def state(c, uid, now=None):
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "short": v.get("short", v["name"]), "stars": v["stars"], "rate": farm.coin_rate(k),
-                      "pay": STATUSES[k][0] if k in STATUSES else 0,
+                      "pay": STATUSES[k][0] if k in STATUSES else 0, "coin_price": farm.coin_price(k),
                       "owned": 1 if k == "farmer" else st["pets"].get(k, 0)})
     return {
         "coins": round(u["points"], 2),
@@ -523,6 +523,32 @@ def api_rating(x_init_data: str = Header()):
             rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>? AND id<>?",
                              (me["season_points"], ADMIN_ID or 0)).fetchone()[0]
     return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0}
+
+
+@app.post("/api/buy_coins/{key}")
+async def api_buy_coins(key: str, x_init_data: str = Header()):
+    """Питомец за монеты (вместо Stars). Для админа бесплатно, как и покупка за Stars."""
+    u, _ = user_from(x_init_data)
+    if key not in STATUSES:
+        raise HTTPException(404)
+    with closing(db()) as c:
+        ensure_user(c, u["id"], u.get("username"), u.get("first_name"))
+        c.commit()
+        c.execute("BEGIN IMMEDIATE")
+        farm.settle(c, u["id"])          # до смены питомцев доход считается по старой ставке
+        row = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
+        price = farm.coin_price(key)
+        free = admin_only(u["id"])
+        if not free and row["points"] < price:
+            c.rollback()
+            raise HTTPException(400, "coins")
+        if not free:
+            c.execute("UPDATE users SET points=points-? WHERE id=?", (price, u["id"]))
+        give_pet(c, u["id"], key)
+        c.commit()
+        s = state(c, u["id"])
+    s["bought_for_coins"] = key
+    return s
 
 
 @app.post("/api/buy/{key}")

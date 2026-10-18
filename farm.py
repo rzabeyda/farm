@@ -28,6 +28,16 @@ TIERS = {
 PAID = [k for k in TIERS if k != "farmer"]
 
 
+COIN_PAYBACK_DAYS = 20          # питомца можно купить за монеты: цена = его доход за столько суток (округляется до сотен)
+
+
+def coin_price(tier):
+    """Цена питомца в монетах (0 для Фермера, его не покупают)."""
+    if TIERS[tier]["stars"] == 0:
+        return 0
+    return int(round(TIERS[tier]["rate"] * 24 * COIN_PAYBACK_DAYS, -2))
+
+
 def coin_rate(tier):
     return TIERS[tier]["rate"]
 
