@@ -15,13 +15,13 @@ REF_BONUS = 100               # монет приглашающему, когд�
 REF_CAP = 50                 # столько друзей в день приносят бонус (защита от накрутки аккаунтами)
 
 # Питомцы: stars - цена в Telegram Stars, rate - монет в час (у питомца ровно один показатель дохода).
-# Баланс: доход на 1 Star растёт с ценой питомца в пропорции 30 : 27 : 24 : 21 (Utya : Bunny : Cat : Pepe),
+# Баланс: доход на 1 Star растёт с ценой питомца в пропорции 30 : 27 : 24 : 21 (Utya : Capybara : Cat : Pepe),
 # то есть Pepe при той же цене даёт в 30/21 = 1.43 раза больше монет, чем 40 Utya. Pepe = 480 монет в час (11 520 в сутки),
 # остальные считаются от него: rate = 480 / stars_pepe * stars * (21 / дней).
 TIERS = {
     "farmer":   dict(stars=0,    name="Фермер", rate=2),
     "gold":     dict(stars=25,   name="Utya",   rate=8.4),             # 201.6 в сутки, 8.064 на Star
-    "platinum": dict(stars=100,  name="Bunny",  rate=37.333333333),    # 896 в сутки, 8.96 на Star
+    "platinum": dict(stars=100,  name="Capybara", rate=37.333333333),    # 896 в сутки, 8.96 на Star
     "diamond":  dict(stars=500,  name="Scared Cat", short="Cat", rate=210),   # 5 040 в сутки, 10.08 на Star
     "obsidian": dict(stars=1000, name="Pepe",   rate=480),             # 11 520 в сутки, 11.52 на Star
 }

@@ -488,7 +488,7 @@ async function api(p){
   return r.json();
 }
 function setS(s){S=s;S._t=Date.now()}
-const ART={farmer:'farmer',gold:'duck',platinum:'bunny',diamond:'cat',obsidian:'frog'};
+const ART={farmer:'farmer',gold:'duck',platinum:'capybara',diamond:'cat',obsidian:'frog'};
 const art=k=>'static/art/'+(ART[k]||'farmer')+'.svg';
 const COIN='<img src="static/coin.png" alt="" style="display:inline-block;width:18px;height:18px;vertical-align:-3px">';
 const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0b2410" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
@@ -681,7 +681,7 @@ function mInfo(){
   $('sh-t').textContent='Как играть';
   $('sh-b').innerHTML='<div class="tl">'
    +'<div class="inf"><h4>1. ФАРМ</h4><p>Раз в день нажимай <b>ФАРМ</b>, и ферма работает круглые сутки. Нажать можно один раз за сутки, новые сутки начинаются в 00:00 по UTC (03:00 по Москве). Пропустил день, ферма остановится до следующего ФАРМ.</p></div>'
-   +'<div class="inf"><h4>2. Питомец работает за тебя</h4><p>Фермер у тебя есть сразу. Дальше можно заводить Utya, Bunny, Scared Cat и Pepe: несколько питомцев и разных видов, доход складывается. Они приносят монеты круглые сутки, пока ты раз в день нажимаешь ФАРМ. Доход один: монет в сутки. Питомцы заводятся во вкладке «Питомцы» за Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>2. Питомец работает за тебя</h4><p>Фермер у тебя есть сразу. Дальше можно заводить Utya, Capybara, Scared Cat и Pepe: несколько питомцев и разных видов, доход складывается. Они приносят монеты круглые сутки, пока ты раз в день нажимаешь ФАРМ. Доход один: монет в сутки. Питомцы заводятся во вкладке «Питомцы» за Telegram Stars.</p></div>'
    +'<div class="inf"><h4>3. Обмен монет на NFT</h4><p>Копи монеты и меняй их на NFT. Наборы показаны в баннере на главной, а обмен открывается по нажатию на него или на баланс монет. У каждого NFT один экземпляр, выдаёт администратор вручную.</p></div>'
    +'<div class="inf"><h4>4. Друзья</h4><p>Твой друг приходит в бота и нажимает ФАРМ: ты получаешь <b>+100 монет сегодня</b>. Приходит завтра и нажимает ФАРМ: снова +100 монет, и так далее. Учитываются до 20 друзей в день.</p></div>'
    +'<div class="inf"><h4>5. Рейтинг</h4><p>В профиле нажми на «Рейтинг»: там топ 10 игроков по заработанным монетам.</p></div>'
@@ -692,7 +692,7 @@ function mInfo(){
 /* ---------- онбординг ---------- */
 const OB=[
  {t:'Нажимай ФАРМ',s:'Раз в день нажми <b>ФАРМ</b>, и ферма работает круглые сутки: монеты идут сами.',i:'<img class="obimg" src="static/art/farmer.svg" alt="">'},
- {t:'Питомцы работают за тебя',s:'Utya, Bunny, Scared Cat и Pepe приносят больше монет в сутки, их можно иметь несколько. Заводятся за <b>Telegram Stars</b>.',i:'<img class="obimg" src="static/art/bunny.svg" alt="">'},
+ {t:'Питомцы работают за тебя',s:'Utya, Capybara, Scared Cat и Pepe приносят больше монет в сутки, их можно иметь несколько. Заводятся за <b>Telegram Stars</b>.',i:'<img class="obimg" src="static/art/bunny.svg" alt="">'},
  {t:'Обменивай монеты на NFT',s:'Копи монеты и меняй их на <b>NFT</b>: у каждого один экземпляр. Смотри, какие NFT можно получить, в баннере на главной.',i:'<img class="obimg" src="static/nft/196787.jpg" alt="">'},
  {t:'Топ 10 игроков',s:'В профиле нажми на «Рейтинг»: там десять игроков, которые заработали больше всех монет.',i:'<img class="obimg" src="static/art/frog.svg" alt="">'}
 ];

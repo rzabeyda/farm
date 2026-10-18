@@ -684,19 +684,19 @@ async def cmd_rewards(m: Message):
     await m.answer(text + "\n\nСнять награду: /delreward НОМЕР")
 
 
-PET_ALIAS = {"utya": "gold", "gold": "gold", "bunny": "platinum", "platinum": "platinum",
+PET_ALIAS = {"utya": "gold", "gold": "gold", "bunny": "platinum", "capybara": "platinum", "capy": "platinum", "platinum": "platinum",
              "cat": "diamond", "diamond": "diamond", "pepe": "obsidian", "obsidian": "obsidian"}
 
 
 @dp.message(Command("grant"))
 async def cmd_grant(m: Message, command: CommandObject):
-    """/grant @username cat — подарить питомца (utya, bunny, cat, pepe). Если игрока ещё нет, выдастся при первом входе."""
+    """/grant @username cat — подарить питомца (utya, capybara, cat, pepe). Если игрока ещё нет, выдастся при первом входе."""
     if not admin_only(m.from_user.id):
         return
     a = (command.args or "").split()
     key = PET_ALIAS.get(a[1].lower()) if len(a) == 2 else None
     if not key:
-        await m.answer("Использование: /grant @username utya|bunny|cat|pepe")
+        await m.answer("Использование: /grant @username utya|capybara|cat|pepe")
         return
     name = a[0].lstrip("@").lower()
     with closing(db()) as c:
