@@ -15,10 +15,10 @@ REF_BONUS_FRIEND = 100
 # price - монет за 1 шт. (ресурсы сразу превращаются в монеты), daily - награда за ФАРМ.
 TIERS = {
     "farmer":   dict(stars=0,    name="Фермер",  tier="Новичок",  res="картошку", per_h=2,  price=1, daily=20),
-    "gold":     dict(stars=25,   name="Уточка",  tier="Gold",     res="перья",    per_h=5,  price=2, daily=30),
-    "platinum": dict(stars=100,  name="Зайка",   tier="Platinum", res="морковь",  per_h=12, price=3, daily=100),
-    "diamond":  dict(stars=500,  name="Кошка",   tier="Diamond",  res="мышей",    per_h=30, price=5, daily=500),
-    "obsidian": dict(stars=1000, name="Лягушка", tier="Obsidian", res="кувшинки", per_h=60, price=8, daily=1500),
+    "gold":     dict(stars=25,   name="Utya",    tier="Gold",     res="перья",    per_h=5,  price=2, daily=30),
+    "platinum": dict(stars=100,  name="Bunny",   tier="Platinum", res="морковь",  per_h=12, price=3, daily=100),
+    "diamond":  dict(stars=500,  name="Scared Cat", tier="Diamond",  res="мышей",    per_h=30, price=5, daily=500),
+    "obsidian": dict(stars=1000, name="Pepe",    tier="Obsidian", res="кувшинки", per_h=60, price=8, daily=1500),
 }
 PAID = [k for k in TIERS if k != "farmer"]
 

@@ -757,7 +757,7 @@ async def start(m: Message, command: CommandObject):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     text = ("Привет, фермер! Добро пожаловать на ферму.\n\n"
-            "Нажимай ФАРМ раз в день, заводи питомцев (уточку, зайку, кошку, лягушку), копи монеты и обменивай их на NFT. "
+            "Нажимай ФАРМ раз в день, заводи питомцев (Utya, Bunny, Scared Cat, Pepe), копи монеты и обменивай их на NFT. "
             "Лучшие игроки сезона получают призы в Telegram Stars.")
     global WELCOME_FILE_ID
     try:
