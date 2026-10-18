@@ -34,7 +34,7 @@ NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "3
 # NFT других коллекций: "Коллекция-номер" как в ссылке t.me/nft/..., картинка static/nft/коллекция-номер.jpg
 NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493", "SnoopDogg-347559", "LibertyFigure-232065", "LibertyFigure-255648", "LibertyFigure-101787", "LibertyFigure-237012", "LibertyFigure-189626", "LibertyFigure-87941", "LibertyFigure-68725"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
-NFT_PRICE_HIGH = 343000                                 # цена новых подарков (NFT_PREMIUM)
+NFT_PRICE_HIGH = 400000                                 # цена новых подарков (NFT_PREMIUM)
 NFT_PREMIUM = set(NFT_OTHER) | {"PoolFloat-202928", "PoolFloat-20370", "PoolFloat-108354"}
 
 bot = Bot(BOT_TOKEN)
@@ -487,16 +487,21 @@ async def api_shop_buy(rid: int, x_init_data: str = Header()):
 
 
 @app.post("/api/shop/exchange")
-async def api_shop_exchange(x_init_data: str = Header()):
-    """Обмен монет на случайный NFT из списка (выбирает сервер, игрок выбрать не может)."""
+async def api_shop_exchange(price: int = 0, x_init_data: str = Header()):
+    """Обмен монет на случайный NFT выбранной цены (price). Выбирает сервер, игрок конкретный NFT выбрать не может."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
         me = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
-        ids = [r["id"] for r in c.execute("SELECT id FROM rewards WHERE active=1 AND stock>0 AND price<=?",
-                                          (me["points"] if me else 0,))]
-        anyleft = c.execute("SELECT 1 FROM rewards WHERE active=1 AND stock>0").fetchone()
+        coins = me["points"] if me else 0
+        if price:
+            rows = c.execute("SELECT id,price FROM rewards WHERE active=1 AND stock>0 AND price=?", (price,)).fetchall()
+        else:
+            rows = c.execute("SELECT id,price FROM rewards WHERE active=1 AND stock>0").fetchall()
+    if not rows:
+        raise HTTPException(400, "stock")
+    ids = [r["id"] for r in rows if r["price"] <= coins]
     if not ids:
-        raise HTTPException(400, "coins" if anyleft else "stock")
+        raise HTTPException(400, "coins")
     return await api_shop_buy(random.choice(ids), x_init_data)
 
 
