@@ -29,7 +29,7 @@ BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
 NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494"]
-NFT_PRICE = int(os.environ.get("NFT_PRICE", 200000))   # цена одного NFT в монетах по умолчанию
+NFT_PRICE = int(os.environ.get("NFT_PRICE", 100000))   # цена одного NFT в монетах по умолчанию
 DEFAULT_PRIZE = "Лучшие игроки сезона получают призы в Telegram Stars из призового фонда. Размер фонда и условия объявляет администратор."
 
 bot = Bot(BOT_TOKEN)
@@ -216,6 +216,7 @@ def state(c, uid, now=None):
         "rate": st["rate"], "ref_rate": ref_rate, "rate_total": st["rate"] + ref_rate,
         "ref_per": farm.REF_RATE, "ref_cap": farm.REF_CAP,
         "farm_until": until, "farming": until > now,
+        "is_admin": bool(ADMIN_ID) and uid == ADMIN_ID,
         "animal": st["tier"], "animal_name": st["t"]["name"],
         "claimed_today": claimed, "streak": streak, "today": t,
         "friends": friends, "friends_today": refs_active, "refs": refs_active,

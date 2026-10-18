@@ -597,8 +597,9 @@ function mPet(k){
   $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
    +'<div class="r"><span>Доход</span><b>+'+sp(t.rate*24)+' '+coinsW(t.rate*24)+' в сутки</b></div>'
    +'<div class="r"><span>Без захода</span><b>фармится минимум 24 часа</b></div>'
-   +(np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
-   +(np>0?'<p style="margin:10px 0 0;font-size:12px">Срок до NFT ориентировочный: при цене NFT '+sp(np)+' '+coinsW(np)+' и ФАРМ каждый день. NFT в ограниченном количестве, их могут разобрать раньше.</p>':'')
+   +(S.is_admin&&np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
+   +(S.is_admin&&np>0?'<p style="margin:10px 0 0;font-size:12px">Срок до NFT ориентировочный: при цене NFT '+sp(np)+' '+coinsW(np)+' и ФАРМ каждый день (видно только тебе).</p>':'')
+   +(np>0?'<p style="margin:10px 0 0;font-size:12px">NFT в ограниченном количестве, их могут разобрать раньше.</p>':'')
    +(own?'<button class="go low" disabled>Это твой питомец</button>':(free||low)?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">Завести за '+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
