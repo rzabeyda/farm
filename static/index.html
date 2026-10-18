@@ -593,7 +593,7 @@ function renderProfile(){
   $('p-friends').textContent=S.friends.length;
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row fr" data-u="'+escH(f.username||'')+'"><span>'+escH(f.name)+'</span>'+(f.done?'':'<small class="rm">Напомнить</small>')+'<div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+plural(S.streak,'день','дня','дней');
-  {const d=Math.round(S.rate*24);$('p-rate').textContent='+'+sp(d)+' '+coinsW(d)}
+  $('p-rate').textContent='+'+sp(Math.round(S.rate*24))
   $('me').className='card me'+(S.animal!=='farmer'?' s-'+S.animal:'');$('badge').textContent=S.animal_name;
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
   document.querySelectorAll('#fl .row.fr').forEach(r=>r.onclick=()=>remindFriend(r.dataset.u,r.querySelector('.rm')===null));
