@@ -603,8 +603,7 @@ def admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
          InlineKeyboardButton(text="Топ игроков", callback_data="adm:rating")],
-        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")],
-        [InlineKeyboardButton(text="Заказы наград", callback_data="adm:orders")]])
+        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")]])
 
 
 def stats_text():
