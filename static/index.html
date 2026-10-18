@@ -517,7 +517,7 @@ function nftShow(){
   const it=SHOP[nftI%SHOP.length];nftI++;
   $('nftban').style.display='';
   const im=$('nftImg');im.src=it.img;
-  $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' · остался 1';
+  $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' '+coinsW(it.price);
   const b=$('nftban');b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');
 }
 setInterval(nftShow,3000);
@@ -616,9 +616,9 @@ async function mShop(){
   SHOP=d.items;
   $('sh-t').textContent='Обмен монет на NFT';
   const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
-  $('sh-b').innerHTML='<p>Меняй монеты на NFT. У каждого NFT один экземпляр. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
-   +(d.items.length?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b><small>'+escH(i.descr||'Коллекционная награда')+'</small></div>'
-     +'<button class="buy" data-id="'+i.id+'"'+(S.coins<i.price?' disabled':'')+'><img src="static/coin.png" alt="">'+fmtS(i.price)+'</button></div>').join('')+'</div>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+  $('sh-b').innerHTML='<p>Меняй монеты на NFT. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
+   +(d.items.length?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b><small>Нужно '+sp(i.price)+' '+coinsW(i.price)+'</small></div>'
+     +'<button class="buy" data-id="'+i.id+'"'+(S.coins<i.price?' disabled':'')+'>Обменять</button></div>').join('')+'</div>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
    +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
   document.querySelectorAll('#sh-b .rw .buy:not(:disabled)').forEach(b=>b.onclick=()=>buyReward(b.dataset.id));
