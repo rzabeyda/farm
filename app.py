@@ -202,22 +202,23 @@ def state(c, uid, now=None):
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
     until = u["farm_until"] or 0
-    friends = [{"name": _name(f), "done": f["last_claim"] == t}
-               for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
-                                  "ORDER BY (last_claim=?) DESC, created", (uid, t))]
-    refs_active = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
+    friends = [{"name": _name(f), "done": bool(f["ref_active"]) and (f["farm_until"] or 0) > now}
+               for f in c.execute("SELECT id,username,first_name,ref_active,farm_until FROM users WHERE referrer_id=? "
+                                  "ORDER BY (ref_active=1 AND farm_until>?) DESC, created", (uid, now))]
+    refs_active = sum(1 for f in friends if f["done"])
+    ref_rate = farm.REF_RATE * min(refs_active, farm.REF_CAP)
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "short": v.get("short", v["name"]), "stars": v["stars"], "rate": farm.coin_rate(k),
                       "pay": status_price(c, uid, k) if k in STATUSES else 0})
     return {
         "coins": round(u["points"], 2),
-        "rate": st["rate"],
+        "rate": st["rate"], "ref_rate": ref_rate, "rate_total": st["rate"] + ref_rate,
+        "ref_per": farm.REF_RATE, "ref_cap": farm.REF_CAP,
         "farm_until": until, "farming": until > now,
         "animal": st["tier"], "animal_name": st["t"]["name"],
         "claimed_today": claimed, "streak": streak, "today": t,
-        "friends": friends, "friends_today": sum(1 for f in friends if f["done"]), "refs": refs_active,
-        "ref_bonus": farm.REF_BONUS_INVITER, "ref_bonus_friend": farm.REF_BONUS_FRIEND,
+        "friends": friends, "friends_today": refs_active, "refs": refs_active,
         "status": status_of(c, uid),
         "tiers": tiers,
         "season_points": round(u["season_points"], 2),
@@ -368,17 +369,13 @@ async def api_claim(x_init_data: str = Header()):
             raise HTTPException(400, "already")
         streak = row["streak"] + 1 if row["last_claim"] == yesterday() else 1
         first = row["claim_days"] == 0
-        friend_bonus = farm.REF_BONUS_FRIEND if (first and row["referrer_id"]) else 0
-        c.execute("UPDATE users SET points=points+?, season_points=season_points+?, last_claim=?, streak=?, "
-                  "claim_days=claim_days+1, farm_until=?, res_ts=? WHERE id=?",
-                  (friend_bonus, friend_bonus, t, streak, farm.farm_until_for(), time.time(), u["id"]))
+        c.execute("UPDATE users SET last_claim=?, streak=?, claim_days=claim_days+1, farm_until=?, res_ts=? WHERE id=?",
+                  (t, streak, farm.farm_until_for(), time.time(), u["id"]))
         if first and row["referrer_id"]:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
-            c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?",
-                      (farm.REF_BONUS_INVITER, farm.REF_BONUS_INVITER, row["referrer_id"]))
         c.commit()
         s = state(c, u["id"])
-        s["reward"] = friend_bonus
+        s["reward"] = 0
     if new:
         await notify_new(u)
     return s
