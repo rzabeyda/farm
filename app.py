@@ -28,7 +28,8 @@ REMIND_HOUR = int(os.environ.get("REMIND_HOUR_UTC", 9))   # 12:00 по Моск�
 BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
-NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494"]
+NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494",
+           "129754", "130195", "175066", "88462", "30452", "61032", "202183", "87790", "46133", "70214", "107748", "78965"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
 
 bot = Bot(BOT_TOKEN)
@@ -116,13 +117,15 @@ def init_db():
                 if r["status"] in farm.PAID:
                     c.execute("UPDATE users SET pets=? WHERE id=? AND pets='{}'", (json.dumps({r["status"]: 1}), r["id"]))
             c.execute("INSERT INTO meta(k,v) VALUES('pets5','1')")
-        # стартовый набор NFT для обмена (один раз)
-        if not c.execute("SELECT 1 FROM meta WHERE k='nft_seed'").fetchone():
-            for nid in NFT_IDS:
+        # NFT для обмена: каждая ссылка добавляется один раз. Повторы в списке, а также NFT, которые уже есть в базе
+        # (проданные или снятые тоже), заново не добавляются.
+        for nid in dict.fromkeys(NFT_IDS):
+            url = f"https://t.me/nft/PoolFloat-{nid}"
+            if not c.execute("SELECT 1 FROM rewards WHERE url=?", (url,)).fetchone():
                 c.execute("INSERT INTO rewards(title,descr,price,stock,created,img,url) VALUES(?,?,?,?,?,?,?)",
                           (f"Pool Float #{nid}", "Коллекционный NFT, один экземпляр", NFT_PRICE, 1, int(time.time()),
-                           f"static/nft/{nid}.jpg", f"https://t.me/nft/PoolFloat-{nid}"))
-            c.execute("INSERT INTO meta(k,v) VALUES('nft_seed','1')")
+                           f"static/nft/{nid}.jpg", url))
+        c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('nft_seed','1')")
         c.commit()
 
 
