@@ -408,7 +408,7 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
         <svg class="nar" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
       <div class="scene" id="scene"><img id="sceneImg" src="static/art/farmer.svg" alt="" draggable="false"></div>
-      <div class="cap"><b id="animalName">Фермер</b><span id="tierTag" class="tag">Новичок</span></div>
+      <div class="cap"><b id="animalName">Фермер</b></div>
       <button class="wd farmbtn" id="farm"><span id="farmTxt">ФАРМ</span><small id="farmSub"></small></button>
     </section>
 
@@ -551,7 +551,7 @@ const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond',obsidian:'t-
 function renderHome(){
   const done=S.claimed_today;
   const img=$('sceneImg'),src=art(S.animal);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
-  $('animalName').textContent=S.animal_name;$('tierTag').textContent=S.tier_name;$('tierTag').className='tag '+(SCOL[S.animal]||'');
+  $('animalName').textContent=S.animal_name;
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Приходи завтра':'ФАРМ';
   $('farmSub').textContent=done?('через '+leftTxt()):('+'+sp(S.daily_reward)+' '+coinsW(S.daily_reward));
@@ -562,7 +562,7 @@ function renderPets(){
     const own=S.animal===t.key,free=t.stars===0,low=!own&&!free&&t.pay<=0;
     const cls=free?'t-novice':SCOL[t.key];
     return '<div class="tier pet '+cls+(own?' cur':'')+'" data-k="'+t.key+'"><img class="pimg" src="'+art(t.key)+'" alt="">'
-      +'<div class="pt"><b>'+escH(t.name)+'</b><small class="pl">'+(free?'Новичок':t.tier)+'</small>'
+      +'<div class="pt"><b>'+escH(t.name)+'</b>'
       +'<small class="hl">'+COIN+' +'+sp(t.rate)+' '+coinsW(t.rate)+' в час</small>'
       +'<small>ФАРМ: +'+sp(t.daily)+' '+coinsW(t.daily)+' в день</small></div>'
       +'<button class="buy" data-k="'+t.key+'"'+(own||free||low?' disabled':'')+'>'+(own?'Твой':free?'База':low?'Ниже':'<img src="static/star.png" alt="">'+t.pay)+'</button></div>'}).join('');
@@ -591,7 +591,6 @@ function mPet(k){
   const own=S.animal===k,free=t.stars===0,low=!own&&!free&&t.pay<=0;
   $('sh-t').textContent=t.name;
   $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
-   +'<div class="r"><span>Уровень</span><b>'+(free?'Новичок':t.tier)+'</b></div>'
    +'<div class="r"><span>Доход</span><b>+'+sp(t.rate)+' '+coinsW(t.rate)+' в час</b></div>'
    +'<div class="r"><span>Награда за ФАРМ</span><b>+'+sp(t.daily)+' '+coinsW(t.daily)+'</b></div>'
    +'<div class="r"><span>Копится без захода</span><b>до '+S.cap_h+' ч</b></div>'
