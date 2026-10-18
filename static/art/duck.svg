@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<style>.float{transform-box:fill-box;transform-origin:50% 90%;animation:fl 2.8s ease-in-out infinite}@keyframes fl{50%{transform:translateY(-5px) rotate(2.5deg)}}.sun{transform-box:fill-box;transform-origin:50% 50%;animation:sun 8s linear infinite}@keyframes sun{to{transform:rotate(360deg)}}</style>
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd3ff"/><stop offset="1" stop-color="#d8f1ff"/></linearGradient>
+<linearGradient id="wat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4cc3f2"/><stop offset="1" stop-color="#1f8fd6"/></linearGradient>
+<linearGradient id="duck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe45c"/><stop offset="1" stop-color="#ffc21a"/></linearGradient>
+<clipPath id="in"><ellipse cx="120" cy="170" rx="82" ry="30"/></clipPath>
+</defs>
+<rect width="240" height="240" fill="url(#sky)"/>
+<circle cx="40" cy="44" r="20" fill="#fff6c2"/><g class="sun" stroke="#fff6c2" stroke-width="3" stroke-linecap="round"><path d="M40 12v8M40 68v8M8 44h8M64 44h8M17 21l6 6M57 61l6 6M63 21l-6 6M23 61l-6 6"/></g>
+<path d="M150 50 q10 -12 22 -2 q12 -8 20 4 q10 0 8 10 h-52 q-4 -8 2 -12z" fill="#fff" opacity=".9"/>
+<ellipse cx="120" cy="170" rx="100" ry="40" fill="#ff7fa8"/>
+<ellipse cx="120" cy="170" rx="100" ry="40" fill="none" stroke="#fff" stroke-width="8" stroke-dasharray="26 26" opacity=".85"/>
+<ellipse cx="120" cy="170" rx="82" ry="30" fill="url(#wat)"/>
+<g clip-path="url(#in)" fill="none" stroke="#bfeaff" stroke-width="2.5" stroke-linecap="round" opacity=".8">
+<path d="M52 176 q10 -6 20 0 t20 0"/><path d="M150 186 q10 -6 20 0 t20 0"/><path d="M86 160 q8 -5 16 0"/>
+</g>
+<g class="float">
+<ellipse cx="124" cy="176" rx="46" ry="12" fill="#1f8fd6" opacity=".35"/>
+<path d="M82 150 Q80 178 118 180 Q168 182 170 150 Q172 128 150 124 Q132 120 108 128 Q84 134 82 150Z" fill="url(#duck)"/>
+<path d="M150 130 Q176 120 176 146 Q166 138 150 142Z" fill="#ffb000"/>
+<circle cx="112" cy="100" r="30" fill="url(#duck)"/>
+<path d="M86 108 Q70 106 68 116 Q80 124 94 120Z" fill="#ff8a1f"/>
+<path d="M70 114 q10 4 22 0" stroke="#d66a00" stroke-width="2" fill="none"/>
+<circle cx="104" cy="94" r="5" fill="#222"/><circle cx="106" cy="92" r="1.8" fill="#fff"/>
+<ellipse cx="96" cy="104" rx="5" ry="3" fill="#ff9aa0" opacity=".7"/>
+<path d="M118 70 q-2 -8 6 -10 q-4 6 2 10" stroke="#ffc21a" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M100 150 Q118 162 138 150" stroke="#f0a800" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+</g>
+<path d="M20 170 Q120 232 220 170" fill="none" stroke="#ff7fa8" stroke-width="22" stroke-linecap="round"/>
+<path d="M20 170 Q120 232 220 170" fill="none" stroke="#fff" stroke-width="22" stroke-dasharray="26 26" opacity=".85"/>
+<g fill="#fff" opacity=".9"><circle cx="196" cy="140" r="4"/><circle cx="206" cy="128" r="2.5"/><circle cx="52" cy="140" r="3"/></g>
+</svg>
