@@ -14,7 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import farm
-from farm import UPGRADES
 
 # Питомцы за Telegram Stars: ключ -> (цена в Stars, зарезервировано, название)
 STATUSES = {k: (farm.TIERS[k]["stars"], 0, farm.TIERS[k]["name"]) for k in farm.PAID}
@@ -29,6 +28,8 @@ REMIND_HOUR = int(os.environ.get("REMIND_HOUR_UTC", 9))   # 12:00 по Моск�
 BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
+NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494"]
+NFT_PRICE = int(os.environ.get("NFT_PRICE", 200000))   # цена одного NFT в монетах по умолчанию
 DEFAULT_PRIZE = "Лучшие игроки сезона получают призы в Telegram Stars из призового фонда. Размер фонда и условия объявляет администратор."
 
 bot = Bot(BOT_TOKEN)
@@ -89,6 +90,25 @@ def init_db():
         if not c.execute("SELECT 1 FROM meta WHERE k='farm_import'").fetchone():
             c.execute("UPDATE users SET points=balance*100, season_points=balance*100")
             c.execute("INSERT INTO meta(k,v) VALUES('farm_import','1')")
+        for ddl in ("ALTER TABLE rewards ADD COLUMN img TEXT", "ALTER TABLE rewards ADD COLUMN url TEXT"):
+            try:
+                c.execute(ddl)
+            except sqlite3.OperationalError:
+                pass
+        # v3: нераспроданные ресурсы превращаются в монеты (ресурсы больше не копятся на складе)
+        if not c.execute("SELECT 1 FROM meta WHERE k='farm3_import'").fetchone():
+            for r in c.execute("SELECT id,status,res FROM users WHERE res IS NOT NULL AND res>=1").fetchall():
+                k = farm.tier_of(r)
+                gain = int(r["res"]) * farm.TIERS[k]["price"]
+                c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res=0 WHERE id=?", (gain, gain, r["id"]))
+            c.execute("INSERT INTO meta(k,v) VALUES('farm3_import','1')")
+        # стартовый набор NFT для обмена (один раз)
+        if not c.execute("SELECT 1 FROM meta WHERE k='nft_seed'").fetchone():
+            for nid in NFT_IDS:
+                c.execute("INSERT INTO rewards(title,descr,price,stock,created,img,url) VALUES(?,?,?,?,?,?,?)",
+                          (f"Pool Float #{nid}", "Коллекционный NFT, один экземпляр", NFT_PRICE, 1, int(time.time()),
+                           f"static/nft/{nid}.jpg", f"https://t.me/nft/PoolFloat-{nid}"))
+            c.execute("INSERT INTO meta(k,v) VALUES('nft_seed','1')")
         c.commit()
 
 
@@ -172,36 +192,27 @@ def state(c, uid, now=None):
     u = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     st = farm.stats(u)
     t, y = today(), yesterday()
-    res = min(st["cap"], (u["res"] or 0.0) + st["rate"] * max(0.0, now - (u["res_ts"] or now)) / 3600.0)
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
     friends = [{"name": _name(f), "done": f["last_claim"] == t}
                for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
                                   "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
-    ups = []
-    for k, d in UPGRADES.items():
-        lvl = st["levels"][k]
-        ups.append({"key": k, "name": d["name"], "desc": d["desc"], "level": lvl, "max": d["max"],
-                    "cost": farm.upgrade_cost(k, lvl, st["tier"]) if lvl < d["max"] else None})
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "tier": v["tier"], "stars": v["stars"], "res": v["res"],
-                      "per_h": v["per_h"], "price": v["price"], "daily": v["daily"],
+                      "per_h": v["per_h"], "price": v["price"], "rate": farm.coin_rate(k), "daily": v["daily"],
                       "pay": status_price(c, uid, k) if k in STATUSES else 0})
     return {
         "coins": round(u["points"], 2),
-        "res": round(res, 2), "res_cap": round(st["cap"], 2), "res_name": st["t"]["res"],
-        "rate": round(st["rate"], 2), "sell_price": round(st["price"], 2), "res_value": round(int(res) * st["price"], 2),
+        "rate": st["rate"], "cap_h": st["cap_h"], "res": st["t"]["res"],
         "daily_reward": farm.farm_reward(streak + 1, st["t"]["daily"]),
-        "cap_h": st["cap_h"],
         "animal": st["tier"], "animal_name": st["t"]["name"], "tier_name": st["t"]["tier"],
         "claimed_today": claimed, "streak": streak, "today": t,
         "friends": friends, "friends_today": sum(1 for f in friends if f["done"]), "refs": refs_active,
         "ref_bonus": farm.REF_BONUS_INVITER, "ref_bonus_friend": farm.REF_BONUS_FRIEND,
         "status": status_of(c, uid),
         "tiers": tiers,
-        "upgrades": ups,
         "season_points": round(u["season_points"], 2),
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
     }
@@ -256,7 +267,7 @@ async def run_reminders():
         InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     sent = blocked = 0
     for u in users:
-        text = "Твоя ферма ждёт. Зайди, нажми ФАРМ и забери награду."
+        text = "Твоя ферма ждёт. Зайди, нажми ФАРМ и забери награду. Копи монеты и обменивай их на NFT."
         if u["streak"] and u["last_claim"]:
             text += f"\nСерия {u['streak']} дн. — не потеряй её."
         text += "\nОтключить напоминания: /stop"
@@ -303,7 +314,7 @@ async def lifespan(_):
     init_db()
     try:
         await bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL)))
+            menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL)))
     except Exception as e:
         print("menu button:", e)
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
@@ -368,62 +379,14 @@ async def api_claim(x_init_data: str = Header()):
     return s
 
 
-@app.post("/api/sell")
-def api_sell(x_init_data: str = Header()):
-    """Продать ресурсы со склада за монеты по фиксированному курсу."""
-    u, _ = user_from(x_init_data)
-    with closing(db()) as c:
-        c.execute("BEGIN IMMEDIATE")
-        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-        if not row:
-            c.rollback()
-            raise HTTPException(404)
-        farm.settle(c, u["id"])
-        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-        st = farm.stats(row)
-        n = int(row["res"] or 0)
-        gain = n * st["price"]
-        if n > 0:
-            c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res=res-? WHERE id=?",
-                      (gain, gain, n, u["id"]))
-        c.commit()
-        s = state(c, u["id"])
-        s["sold"] = n
-        s["gained"] = round(gain, 2)
-        return s
-
-
-@app.post("/api/upgrade/{key}")
-def api_upgrade(key: str, x_init_data: str = Header()):
-    if key not in UPGRADES:
-        raise HTTPException(404)
-    u, _ = user_from(x_init_data)
-    with closing(db()) as c:
-        c.execute("BEGIN IMMEDIATE")
-        farm.settle(c, u["id"])
-        row = c.execute("SELECT * FROM users WHERE id=?", (u["id"],)).fetchone()
-        lv = farm.levels_of(row)
-        if lv[key] >= UPGRADES[key]["max"]:
-            c.rollback()
-            raise HTTPException(400, "max")
-        cost = farm.upgrade_cost(key, lv[key], farm.tier_of(row))
-        if row["points"] < cost:
-            c.rollback()
-            raise HTTPException(400, "coins")
-        lv[key] += 1
-        c.execute("UPDATE users SET points=points-?, upg=? WHERE id=?", (cost, json.dumps(lv), u["id"]))
-        c.commit()
-        # ёмкость и скорость пересчитываются от нового уровня при ближайшем settle
-        return state(c, u["id"])
-
-
 @app.post("/api/shop")
 def api_shop(x_init_data: str = Header()):
     """Магазин наград: коллекционные призы за монеты в ограниченном количестве."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
-        items = [{"id": r["id"], "title": r["title"], "descr": r["descr"], "price": r["price"], "stock": r["stock"]}
-                 for r in c.execute("SELECT id,title,descr,price,stock FROM rewards WHERE active=1 AND stock>0 ORDER BY id")]
+        items = [{"id": r["id"], "title": r["title"], "descr": r["descr"], "price": r["price"], "stock": r["stock"],
+                  "img": r["img"], "url": r["url"]}
+                 for r in c.execute("SELECT id,title,descr,price,stock,img,url FROM rewards WHERE active=1 AND stock>0 ORDER BY id")]
         me = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
         mine = [{"title": r["title"], "status": r["status"]}
                 for r in c.execute("SELECT title,status FROM reward_orders WHERE user_id=? ORDER BY id DESC LIMIT 20", (u["id"],))]
@@ -629,6 +592,35 @@ async def cmd_rewards(m: Message):
     await m.answer(text + "\n\nСнять награду: /delreward НОМЕР")
 
 
+@dp.message(Command("rewardprice"))
+async def cmd_rewardprice(m: Message, command: CommandObject):
+    if not admin_only(m.from_user.id):
+        return
+    a = (command.args or "").split()
+    if len(a) != 2 or not a[0].isdigit() or not a[1].isdigit() or int(a[1]) <= 0:
+        await m.answer("Использование: /rewardprice НОМЕР ЦЕНА_В_МОНЕТАХ\nНапример: /rewardprice 3 150000\n"
+                       "Чтобы поменять цену всем сразу: /rewardprice all 150000")
+        return
+    with closing(db()) as c:
+        c.execute("UPDATE rewards SET price=? WHERE id=?", (int(a[1]), int(a[0])))
+        c.commit()
+    await m.answer(f"Цена награды #{a[0]} теперь {a[1]} монет")
+
+
+@dp.message(Command("rewardpriceall"))
+async def cmd_rewardpriceall(m: Message, command: CommandObject):
+    if not admin_only(m.from_user.id):
+        return
+    a = (command.args or "").strip()
+    if not a.isdigit() or int(a) <= 0:
+        await m.answer("Использование: /rewardpriceall ЦЕНА_В_МОНЕТАХ (для всех наград)")
+        return
+    with closing(db()) as c:
+        c.execute("UPDATE rewards SET price=? WHERE active=1", (int(a),))
+        c.commit()
+    await m.answer(f"Цена всех активных наград теперь {a} монет")
+
+
 @dp.message(Command("delreward"))
 async def cmd_delreward(m: Message, command: CommandObject):
     if not admin_only(m.from_user.id):
@@ -763,12 +755,13 @@ async def start(m: Message, command: CommandObject):
     if new:
         await notify_new({"id": u.id, "username": u.username, "first_name": u.first_name})
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
-    text = ("Привет! Free Stars — ферма: нажимай ФАРМ раз в день, заводи питомцев, продавай ресурсы за монеты и улучшай ферму.\n"
+        InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    text = ("Привет, фермер! Добро пожаловать на ферму.\n\n"
+            "Нажимай ФАРМ раз в день, заводи питомцев (уточку, зайку, кошку, лягушку), копи монеты и обменивай их на NFT. "
             "Лучшие игроки сезона получают призы в Telegram Stars.")
     global WELCOME_FILE_ID
     try:
-        sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "main.jpg")),
+        sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "welcome.png")),
                                     caption=text, reply_markup=kb)
         WELCOME_FILE_ID = sent.photo[-1].file_id
     except Exception as e:

@@ -1,0 +1,50 @@
+# Ферма (бот @farm6bot)
+
+Telegram Mini App: игра-ферма. Нажимай **ФАРМ** раз в день, заводи питомцев за Telegram Stars, копи монеты и обменивай их на NFT.
+
+- Монеты внутриигровые, **в Telegram Stars не обмениваются**.
+- Питомцы (Фермер, Уточка, Зайка, Кошка, Лягушка) сами приносят монеты каждый час (копится до 8 часов без захода).
+- Монеты меняются на NFT из ограниченного набора (магазин наград, выдаёт админ вручную).
+- Лучшие игроки сезона получают призы в Telegram Stars из фонда, который объявляет админ.
+
+## Файлы
+
+| Файл | Что это |
+|---|---|
+| `app.py` | Бот (aiogram) + сервер (FastAPI) + админка |
+| `farm.py` | Правила игры: питомцы, доход, награда за ФАРМ |
+| `static/index.html` | Мини-приложение (всё в одном файле) |
+| `static/art/*.svg` | Нарисованные питомцы с лёгкой анимацией |
+| `static/nft/*.jpg` | Картинки NFT для баннера и магазина |
+| `static/coin.png`, `welcome.png` | Иконка монеты, картинка приветствия |
+| `BASE_VERSION.md` | Как вернуться к старой версии «звёзды каждый день» (тег `base-v1`) |
+
+Пути в `index.html` относительные: приложение работает и в корне домена, и в подпапке `/farm/`.
+
+## Сервер
+
+- Папка: `/root/farm`, сервис systemd `farm`, порт `8021`, за nginx по адресу `https://freestars.zabeyda.lol/farm/`.
+- Настройки в `/root/farm/.env` (в git их нет): `BOT_TOKEN`, `BOT_USERNAME=farm6bot`, `WEBAPP_URL=https://freestars.zabeyda.lol/farm/`, `ADMIN_ID`, `DB_PATH=/root/farm/farm.db`. По желанию: `NFT_PRICE`, `REMIND_HOUR_UTC`, `BACKUP_HOUR_UTC`.
+- База: `/root/farm/farm.db` (SQLite), ночные копии в `/root/farm/backups/`.
+- Отдельно работает старый бот @freestars5bot в `/root/freestars` (сервис `freestars`, порт 8020). Эти два бота не зависят друг от друга.
+
+Выложить новую версию:
+
+```bash
+scp app.py farm.py root@84.200.33.70:/root/farm/
+scp static/index.html static/coin.png static/welcome.png root@84.200.33.70:/root/farm/static/
+scp -r static/art static/nft root@84.200.33.70:/root/farm/static/
+ssh root@84.200.33.70 "systemctl restart farm"
+```
+
+Включить/выключить: `systemctl enable --now farm` / `systemctl disable --now farm`.
+
+## Команды админа (в чате с ботом, только `ADMIN_ID`)
+
+- `/admin` — статистика, рейтинг сезона, заказы наград, топ рефоводов, напоминания, бэкап, новый сезон.
+- `/addreward Название | цена в монетах | количество | описание` — добавить награду (например NFT).
+- `/rewards` — список наград, `/delreward НОМЕР` — снять с витрины.
+- `/rewardprice НОМЕР ЦЕНА`, `/rewardpriceall ЦЕНА` — поменять цену (по умолчанию 200 000 монет, `NFT_PRICE`).
+- `/prize ТЕКСТ` — текст о призах сезона в рейтинге.
+
+Когда игрок заказывает награду, админу приходит `@username заказал «...»` с кнопкой «Выдано». NFT нужно отправить вручную на его @username.

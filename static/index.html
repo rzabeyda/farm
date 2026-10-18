@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Free Stars</title>
-<link rel="icon" href="/static/star.png">
+<link rel="icon" href="static/star.png">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
@@ -328,69 +328,117 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
 .tr.me{background:rgba(255,184,0,.1);border-top-color:transparent;box-shadow:inset 0 0 0 1px rgba(255,184,0,.4)}
 i.r1,i.r2,i.r3,i.r0{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-weight:800;font-size:12px;flex:none;background:rgba(255,255,255,.08);color:var(--dim)}
 i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}i.r3{background:linear-gradient(135deg,#f0b27a,#a8641f);color:#2b1400}
+
+/* ===== v3 ===== */
+.nftban{width:100%;display:flex;align-items:center;gap:12px;margin:0 0 10px;padding:8px 12px 8px 8px;border-radius:20px;text-align:left;color:var(--txt);
+  background:linear-gradient(135deg,rgba(139,224,78,.16),rgba(255,255,255,.04));border:1px solid rgba(139,224,78,.45);box-shadow:0 0 24px rgba(80,190,80,.18);flex:none}
+.nftban .nimg{flex:none;width:58px;height:58px;border-radius:14px;object-fit:cover;background:#1a2a1c}
+.nftban .nt{flex:1;min-width:0}.nftban small{display:block;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--pink)}
+.nftban b{display:block;font-size:15.5px;margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nftban span{display:block;font-size:12.5px;color:var(--dim)}
+.nftban .nar{flex:none;color:var(--pink)}
+.nftban.flip .nimg,.nftban.flip .nt{animation:flipin .45s ease-out both}@keyframes flipin{from{opacity:0;transform:translateY(6px) scale(.96)}}
+.rateline{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:10px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--txt);font-size:13.5px;font-weight:600;max-width:100%}
+.rateline img{width:22px;height:22px;flex:none}
+.ph{font-size:18px}.ucap .mut{margin-top:6px}
+.tier.pet .pt small{display:block;font-size:12px;color:var(--dim);margin-top:1px}.tier.pet .pt small.pl{font-weight:800;letter-spacing:.6px;text-transform:uppercase;font-size:11px}
+.tier.pet .pt small.hl{color:var(--txt);font-weight:700;margin-top:3px}.tier.pet .pt small.hl img{display:inline-block;width:15px;height:15px;vertical-align:-3px}
+.tier.pet .pimg{width:76px;height:76px;border-radius:18px}
+.rimg{flex:none;width:58px;height:58px;border-radius:14px;object-fit:cover;background:#1a2a1c;cursor:pointer}
+.rw .buy img{width:16px;height:16px}
+.buy img[src*=star]{width:15px;height:15px}
+.bal .ic img{width:24px;height:24px}
+nav button img{filter:none!important;opacity:.55;transition:.25s}nav button.on img{opacity:1}
+/* ===== фермерская палитра: зелёная трава, тёплое дерево, золото только для монет ===== */
+:root{--pink:#8be04e;--grad:linear-gradient(135deg,#a4ec63,#3fae45);--on:#0b2410;--dim:#9db3a0;--line:rgba(190,255,190,.12)}
+body{background:radial-gradient(ellipse at 50% 0,#10301a 0,#030a05 62%)}
+#app{background:#040b06}
+#app:before{background:rgba(80,190,80,.30)}#app:after{background:rgba(214,160,60,.20)}
+.invite{box-shadow:0 6px 24px rgba(80,190,80,.45)}
+.wd{box-shadow:0 8px 28px rgba(80,190,80,.4)}
+.help{border-color:rgba(139,224,78,.7);background:rgba(139,224,78,.1);color:#8be04e}
+@keyframes hp{50%{box-shadow:0 0 16px rgba(139,224,78,.55)}}
+.bal .ic{border-color:#ffc01f}
+.bn{background:linear-gradient(135deg,#ffd84d,#ff9f0a);box-shadow:0 0 18px rgba(255,184,0,.5),inset 0 1px 0 rgba(255,255,255,.45);color:#2b1a00}
+nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
+.scene,.petbig{border-color:rgba(139,224,78,.55);box-shadow:0 0 44px rgba(80,190,80,.28),0 16px 40px rgba(0,0,0,.5)}
+.sheet .go{box-shadow:0 8px 28px rgba(80,190,80,.35)}
+.sheet .go.alt{background:rgba(139,224,78,.12);color:#8be04e;box-shadow:inset 0 0 0 1.5px rgba(139,224,78,.5)}
+.sheet .go.low:disabled{background:rgba(139,224,78,.12);color:#8be04e;box-shadow:inset 0 0 0 1px rgba(139,224,78,.35)}
+.sheet .big{background:linear-gradient(135deg,#ffd84d,#ff9f0a);-webkit-background-clip:text;background-clip:text}
+#toast{box-shadow:0 10px 36px rgba(80,190,80,.5)}
+.rp{background:radial-gradient(circle,rgba(190,255,150,.5),rgba(139,224,78,0) 70%)}
+#ob{background:radial-gradient(ellipse at 50% 28%,#123018 0,#000 62%)}
+.ob-ic{border-color:rgba(139,224,78,.5);box-shadow:0 0 50px rgba(80,190,80,.3);color:#8be04e;background:radial-gradient(circle,rgba(139,224,78,.2),rgba(139,224,78,.04) 70%)}
+.ob-ic.art{background:none}
+.mini:active,.wcard:active{border-color:rgba(139,224,78,.6);box-shadow:0 0 26px rgba(80,190,80,.25)}
+.card:active{border-color:rgba(139,224,78,.6);box-shadow:0 0 28px rgba(80,190,80,.25)}
+.upg .buy,.rw .buy,.tier .buy{box-shadow:none}
+.tr.me{background:rgba(139,224,78,.1);box-shadow:inset 0 0 0 1px rgba(139,224,78,.4)}
+.tr b{color:#ffd84d}
+.badge{color:var(--dim)}
+.farmbtn.done{background:rgba(255,255,255,.07);color:var(--dim);box-shadow:none}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
     <div class="bal">
-      <div class="ic"><img src="/static/star.png" width="20" height="20" alt="" draggable="false"></div>
+      <div class="ic"><img src="static/coin.png" width="22" height="22" alt="" draggable="false"></div>
       <span class="bl">Монеты</span>
       <div class="bn"><b id="bal">0</b></div>
     </div>
     <button class="help" id="help" aria-label="Как играть"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9.2a3 3 0 1 1 4.6 2.5c-1 .6-1.6 1.2-1.6 2.3"/><path d="M12 18v.01"/></svg></button>
     <button class="invite" id="inv">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0b2410" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>
       Пригласить
     </button>
   </header>
 
   <main>
     <section class="tab on" id="home">
-      <div class="scene" id="scene"><img id="sceneImg" src="/static/art/farmer.svg" alt="" draggable="false"></div>
+      <button class="nftban" id="nftban" style="display:none">
+        <img class="nimg" id="nftImg" src="" alt="" draggable="false">
+        <div class="nt"><small>Обмен монет на NFT</small><b id="nftName"></b><span id="nftPrice"></span></div>
+        <svg class="nar" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <div class="scene" id="scene"><img id="sceneImg" src="static/art/farmer.svg" alt="" draggable="false"></div>
       <div class="cap"><b id="animalName">Фермер</b><span id="tierTag" class="tag">Новичок</span></div>
       <button class="wd farmbtn" id="farm"><span id="farmTxt">ФАРМ</span><small id="farmSub"></small></button>
-      <div class="wcard" id="bcard">
-        <div class="lbl"><span id="b-name">Склад</span><b id="b-txt">0 / 0</b></div>
-        <div class="bar"><i id="bar"></i></div>
-        <div class="lbl" style="margin-top:6px"><span id="b-rate"></span><span id="b-full"></span></div>
-        <button class="go sell" id="sell">Продать</button>
-      </div>
+      <button class="rateline" id="rateline"><img src="static/coin.png" alt="" draggable="false"><span id="rateTxt"></span></button>
     </section>
 
-    <section class="tab" id="upg">
-      <button class="shopcard" id="shopcard"><b>Магазин наград</b><small>Коллекционные призы за монеты. Тираж ограничен</small></button>
-      <div class="card ucap" id="ucap">
-        <div class="lbl"><span id="u-label">Производство</span><b id="u-rate">0</b></div>
-        <p class="mut">Улучшения покупаются за монеты. Монеты в Telegram Stars не обмениваются.</p>
+    <section class="tab" id="pets">
+      <div class="card ucap">
+        <b class="ph">Питомцы</b>
+        <p class="mut">Питомец сам приносит монеты каждый час, даже когда тебя нет в игре. Заводятся за Telegram Stars. Монеты тратятся на обмен на NFT.</p>
       </div>
-      <div id="u-list"></div>
+      <div id="pet-list"></div>
     </section>
 
     <section class="tab" id="profile">
       <div class="card me" id="me">
         <div class="ava" id="ava">?</div>
         <div><b id="uname">Гость</b><span id="uid"></span></div>
-        <div class="badge" id="badge">Новичок</div>
+        <div class="badge" id="badge">Фермер</div>
       </div>
       <div class="duo">
         <div class="mini" id="m-friends"><small>Друзья</small><b id="p-friends">0</b></div>
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
       </div>
       <div class="duo">
-        <div class="mini cta" id="stcard"><small>Питомцы</small><b id="st-name">ЗАВЕСТИ</b></div>
+        <div class="mini" id="m-rate"><small>В час</small><b id="p-rate">+0</b></div>
         <div class="mini" id="m-rank"><small>Рейтинг</small><b id="p-rank">—</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
-      <div class="note">Монеты и ресурсы — внутриигровые, в Telegram Stars не обмениваются. Призы сезона выдаются из фонда, который объявляет администратор.</div>
+      <div class="note">Монеты — внутриигровые, в Telegram Stars они не обмениваются. Их можно обменять на NFT из ограниченного набора. Призы сезона выдаются из фонда, который объявляет администратор.</div>
     </section>
   </main>
 
   <nav>
     <button class="on" data-t="home">
-      <img src="/static/star.png" width="23" height="23" alt="" draggable="false">Фарм</button>
-    <button data-t="upg">
-      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11l6-6 6 6M6 19l6-6 6 6"/></svg>Улучшения</button>
+      <img src="static/coin.png" width="26" height="26" alt="" draggable="false">Фарм</button>
+    <button data-t="pets">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor"><ellipse cx="6.5" cy="10" rx="2.1" ry="2.8"/><ellipse cx="10.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="15.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="19.2" cy="10" rx="2.1" ry="2.8"/><path d="M12.8 11.4c-2.6 0-5.4 3-5.4 5.7 0 1.8 1.4 2.9 3.1 2.9 1 0 1.5-.4 2.3-.4s1.3.4 2.3.4c1.7 0 3.1-1.1 3.1-2.9 0-2.7-2.8-5.7-5.4-5.7z"/></svg>Питомцы</button>
     <button data-t="profile">
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/></svg>Профиль</button>
   </nav>
@@ -399,7 +447,7 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
   <div class="sheet" id="sheet"><div class="box"><div class="grab"></div><h3 id="sh-t"></h3><div id="sh-b"></div></div></div>
   <div id="toast"></div>
   <div id="out">
-    <img src="/static/star.png" width="64" height="64" alt="" draggable="false">
+    <img src="static/coin.png" width="72" height="72" alt="" draggable="false">
     <div class="title">Открой в Telegram</div>
     <div class="sub">Игра работает только внутри Telegram.</div>
     <a href="https://t.me/freestars5bot" target="_blank">Открыть @freestars5bot</a>
@@ -409,7 +457,7 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
 <script>
 const tg=window.Telegram&&Telegram.WebApp;
 if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#000000');tg.setBackgroundColor('#000000');tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}}
-const $=id=>document.getElementById(id);let S=null;
+const $=id=>document.getElementById(id);let S=null,SHOP=[];
 const hap=(t='light')=>{try{tg.HapticFeedback.impactOccurred(t)}catch(e){try{navigator.vibrate(10)}catch(_){}}};
 document.addEventListener('click',e=>{if(e.target.closest('button,.card,.stat,.chip'))hap()});
 const sp=n=>String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
@@ -417,17 +465,19 @@ const dec=n=>{const v=Math.round(+n*100)/100;return String(v)};
 const fmt=n=>{n=+n;return n>=100?sp(n):dec(n)};
 const fmtS=n=>{n=Math.floor(+n);return n>=1e6?(n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M':n>=1e5?Math.floor(n/1e3)+'K':sp(n)};
 const plural=(n,a,b,c)=>{n=Math.floor(n);const x=n%10,y=n%100;return x===1&&y!==11?a:(x>=2&&x<=4&&(y<12||y>14)?b:c)};
+const coinsW=n=>plural(n,'монета','монеты','монет');
 const escH=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2300)}
 async function api(p){
-  const r=await fetch('/api/'+p,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
-  if(!r.ok){const e=new Error(r.status);e.status=r.status;throw e}
+  const r=await fetch('api/'+p,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
+  if(!r.ok){const e=new Error(r.status);try{e.detail=(await r.json()).detail}catch(_){}e.status=r.status;throw e}
   return r.json();
 }
 function setS(s){S=s;S._t=Date.now()}
 const ART={farmer:'farmer',gold:'duck',platinum:'bunny',diamond:'cat',obsidian:'frog'};
-const art=k=>'/static/art/'+(ART[k]||'farmer')+'.svg';
-const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2b1a00" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
+const art=k=>'static/art/'+(ART[k]||'farmer')+'.svg';
+const COIN='<img src="static/coin.png" alt="" style="display:inline-block;width:18px;height:18px;vertical-align:-3px">';
+const INV_ICON='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0b2410" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>';
 function closeM(){$('sheet').classList.remove('on')}
 function openM(title,big,text,rows,btn,btn2,btn3){
   $('sh-t').textContent=title;
@@ -440,7 +490,7 @@ $('sheet').onclick=e=>{if(e.target.id==='sheet')closeM()};
 function leftTxt(){const n=new Date(),m=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1))-n,h=Math.floor(m/36e5),i=Math.floor(m%36e5/6e4);return h+' ч '+i+' мин'}
 function invite(){
   if(!S)return;
-  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи в Free Stars: заведи питомца, собирай ресурсы и поднимайся в рейтинге!');
+  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи в Free Stars: заведи питомца, копи монеты и обменивай их на NFT!');
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
@@ -448,24 +498,25 @@ function goTab(t){
   document.querySelectorAll('nav button,.tab').forEach(e=>e.classList.remove('on'));
   document.querySelector('nav button[data-t="'+t+'"]').classList.add('on');$(t).classList.add('on');
 }
-/* ---------- живое состояние склада ---------- */
-function liveRes(){
-  const dt=(Date.now()-S._t)/1000;
-  return Math.min(S.res_cap,S.res+S.rate*dt/3600);
+/* ---------- живой баланс: пассивный доход ---------- */
+function liveCoins(){
+  const dt=Math.min((Date.now()-S._t)/1000,S.cap_h*3600);
+  return S.coins+S.rate*dt/3600;
 }
-function paintLive(){
-  if(!S)return;
-  const r=liveRes(),n=Math.floor(r),val=n*S.sell_price;
-  $('bal').textContent=fmtS(S.coins);
-  $('b-txt').textContent=n+' / '+Math.floor(S.res_cap);
-  $('bar').style.width=Math.min(100,r/S.res_cap*100)+'%';
-  const full=r>=S.res_cap-0.001;$('bar').classList.toggle('full',full);
-  $('b-full').textContent=full?'Склад полон':'';
-  $('sell').textContent=n>0?'Продать всё · +'+fmt(val)+' монет':'Склад пуст';
-  $('sell').classList.toggle('low',n<=0);
-  if(document.querySelector('#upg.on'))document.querySelectorAll('.upg .buy[data-cost]').forEach(b=>{b.disabled=S.coins<+b.dataset.cost});
+function paintLive(){if(S)$('bal').textContent=fmtS(liveCoins())}
+setInterval(paintLive,1000);
+/* ---------- баннер NFT: каждую секунду другой ---------- */
+let nftI=0;
+function nftShow(){
+  if(!SHOP.length){$('nftban').style.display='none';return}
+  const it=SHOP[nftI%SHOP.length];nftI++;
+  $('nftban').style.display='';
+  const im=$('nftImg');im.src=it.img;
+  $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' · остался 1';
+  const b=$('nftban');b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');
 }
-setInterval(paintLive,500);
+setInterval(nftShow,1000);
+async function loadShop(){try{SHOP=(await api('shop')).items;SHOP.forEach(i=>{const p=new Image();p.src=i.img});nftShow()}catch(e){}}
 /* ---------- действия ---------- */
 $('farm').addEventListener('click',async()=>{
   if(!S)return;
@@ -476,25 +527,16 @@ $('farm').addEventListener('click',async()=>{
     toast('+'+sp(s.reward)+' монет')}
   catch(e){toast('Ошибка, попробуй ещё раз')}
 });
-$('sell').addEventListener('click',async()=>{
-  if(!S)return;
-  if(Math.floor(liveRes())<=0){toast('Склад пока пуст. Ресурсы появляются каждый час');return}
-  try{const s=await api('sell');setS(s);renderAll();burst();
-    try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
-    const bl=$('bal').closest('.bn');bl.classList.remove('bump');void bl.offsetWidth;bl.classList.add('bump');
-    toast('Продано '+s.sold+' · +'+fmt(s.gained)+' монет')}
-  catch(e){toast('Ошибка, попробуй ещё раз')}
-});
 function burst(){
   const c=$('scene').getBoundingClientRect(),a=$('app').getBoundingClientRect();
-  for(let i=0;i<14;i++){const f=document.createElement('div');f.className='fx';f.innerHTML='<img src=/static/star.png alt= draggable=false>';
+  for(let i=0;i<14;i++){const f=document.createElement('div');f.className='fx';f.innerHTML='<img src=static/coin.png alt= draggable=false>';
     f.style.left=(c.left-a.left+c.width/2)+'px';f.style.top=(c.top-a.top+c.height/2)+'px';
     const ang=Math.random()*6.28,d=90+Math.random()*110;
     f.style.setProperty('--x',Math.cos(ang)*d+'px');f.style.setProperty('--y',Math.sin(ang)*d+'px');
     $('app').appendChild(f);setTimeout(()=>f.remove(),1000)}
 }
 document.addEventListener('pointerdown',e=>{
-  const b=e.target.closest('button,.mini,.wcard,.card');if(!b||b.disabled)return;
+  const b=e.target.closest('button,.mini,.card');if(!b||b.disabled||b.id==='nftban')return;
   const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,d=document.createElement('span');
   d.className='rp';d.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';
   b.appendChild(d);setTimeout(()=>d.remove(),700);
@@ -507,54 +549,39 @@ function renderHome(){
   $('animalName').textContent=S.animal_name;$('tierTag').textContent=S.tier_name;$('tierTag').className='tag '+(SCOL[S.animal]||'');
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Приходи завтра':'ФАРМ';
-  $('farmSub').textContent=done?('через '+leftTxt()):('+'+sp(S.daily_reward)+' монет');
-  $('b-name').textContent='Склад: '+S.res_name;
-  $('b-rate').textContent='+'+dec(S.rate)+' в час · 1 шт. = '+dec(S.sell_price)+' '+(Number.isInteger(S.sell_price)?plural(S.sell_price,'монета','монеты','монет'):'монеты');
+  $('farmSub').textContent=done?('через '+leftTxt()):('+'+sp(S.daily_reward)+' '+coinsW(S.daily_reward));
+  $('rateTxt').textContent='+'+dec(S.rate)+' '+coinsW(S.rate)+' в час, питомец работает сам';
   paintLive();
 }
-function renderUpg(){
-  $('u-label').textContent='Производство: '+S.res_name;$('u-rate').textContent='+'+dec(S.rate)+' в час';
-  const ico={barn:'<path d="M3 11l9-7 9 7v9H3zM9 20v-6h6v6"/>',feed:'<path d="M5 12h14l-2 7H7zM8 12c0-4 2-7 4-8 2 1 4 4 4 8"/>',market:'<circle cx="12" cy="12" r="8"/><path d="M12 7v10M9.5 9.5c0-1.2 1.2-2 2.5-2s2.5.8 2.5 2-1.2 1.8-2.5 2-2.5.8-2.5 2 1.2 2 2.5 2 2.5-.8 2.5-2"/>'};
-  $('u-list').innerHTML=S.upgrades.map(u=>{const max=u.cost==null;
-    return '<div class="upg"><div class="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ico[u.key]+'</svg></div><div class="ut"><b>'+u.name+'</b><small>Ур. '+u.level+' · '+u.desc+'</small></div>'
-     +(max?'<button class="buy" disabled>МАКС</button>':'<button class="buy" data-k="'+u.key+'" data-cost="'+u.cost+'"><img src="/static/star.png" alt="">'+fmtS(u.cost)+'</button>')+'</div>'}).join('');
-  document.querySelectorAll('.upg .buy[data-k]').forEach(b=>b.onclick=()=>buyUpg(b.dataset.k));
-  paintLive();
-}
-async function buyUpg(k){
-  try{const s=await api('upgrade/'+k);const u=s.upgrades.find(x=>x.key===k);setS(s);renderAll();toast(u.name+': уровень '+u.level);try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}
-  catch(e){toast(e.status===400?'Не хватает монет':'Ошибка, попробуй ещё раз')}
+function renderPets(){
+  $('pet-list').innerHTML=S.tiers.map(t=>{
+    const own=S.animal===t.key,free=t.stars===0,low=!own&&!free&&t.pay<=0;
+    const cls=free?'t-novice':SCOL[t.key];
+    return '<div class="tier pet '+cls+(own?' cur':'')+'" data-k="'+t.key+'"><img class="pimg" src="'+art(t.key)+'" alt="">'
+      +'<div class="pt"><b>'+escH(t.name)+'</b><small class="pl">'+(free?'Новичок':t.tier)+'</small>'
+      +'<small>Приносит '+t.res+': '+t.per_h+' в час, по '+t.price+' '+coinsW(t.price)+'</small>'
+      +'<small class="hl">'+COIN+' '+sp(t.rate)+' '+coinsW(t.rate)+' в час · ФАРМ +'+sp(t.daily)+'</small></div>'
+      +'<button class="buy" data-k="'+t.key+'"'+(own||free||low?' disabled':'')+'>'+(own?'Твой':free?'База':low?'Ниже':'<img src="static/star.png" alt="">'+t.pay)+'</button></div>'}).join('');
+  document.querySelectorAll('#pet-list .buy:not(:disabled)').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(b.dataset.k)});
+  document.querySelectorAll('#pet-list .tier.pet').forEach(r=>r.onclick=e=>{if(!e.target.closest('.buy'))mPet(r.dataset.k)});
 }
 function renderProfile(){
   const ck='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',xx='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   $('p-friends').textContent=S.friends.length;
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+escH(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+plural(S.streak,'день','дня','дней');
+  $('p-rate').textContent='+'+dec(S.rate);
   const own=S.status&&S.tiers.find(x=>x.key===S.status);
-  $('st-name').textContent=own?own.name.toUpperCase():'ЗАВЕСТИ';$('st-name').className=own?SCOL[own.key]:'';
-  $('stcard').className='mini'+(own?' s-'+own.key:' cta');$('me').className='card me'+(own?' s-'+own.key:'');$('badge').textContent=S.tier_name;
+  $('me').className='card me'+(own?' s-'+own.key:'');$('badge').textContent=S.animal_name;
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
 }
-function renderAll(){renderHome();renderUpg();renderProfile()}
+function renderAll(){renderHome();renderPets();renderProfile()}
 /* ---------- окна ---------- */
-function mBalance(){openM('Твои монеты',fmt(S.coins),'Монеты зарабатываются кнопкой ФАРМ и продажей ресурсов. Они тратятся на улучшения фермы. В Telegram Stars монеты не обмениваются.',[['Производство','+'+dec(S.rate)+' '+S.res_name+'/час'],['Цена продажи',dec(S.sell_price)+' монет за шт.'],['Серия дней',S.streak]],{t:'Улучшения',f:()=>goTab('upg')},{t:'Магазин наград',f:mShop},{t:'Рейтинг сезона',f:mRating})}
-function mBarn(){openM('Склад','',S.animal_name+' приносит '+S.res_name+' каждый час. Склад вмещает ресурсы на '+dec(S.cap_h)+' ч, потом производство останавливается, пока ты не продашь ресурсы. Увеличить склад можно улучшением «Амбар».',[['Производство','+'+dec(S.rate)+' в час'],['Вместимость',Math.floor(S.res_cap)],['Цена продажи',dec(S.sell_price)+' монет']],{t:'Улучшения',f:()=>goTab('upg')})}
+function mBalance(){openM('Твои монеты',fmt(liveCoins()),'Монеты приносит питомец и награда за ФАРМ. Их можно обменять на NFT. В Telegram Stars монеты не обмениваются.',[['Доход питомца','+'+dec(S.rate)+' в час'],['Награда за ФАРМ','+'+sp(S.daily_reward)],['Серия дней',S.streak]],{t:'Обмен на NFT',f:mShop},{t:'Питомцы',f:()=>goTab('pets')},{t:'Рейтинг сезона',f:mRating})}
+function mIncome(){openM('Доход питомца','+'+dec(S.rate)+' в час',S.animal_name+' приносит '+S.res+', и они сразу превращаются в монеты. Монеты копятся, пока тебя нет, до '+S.cap_h+' часов, и начисляются, когда ты заходишь. Чтобы получать больше, заведи питомца покрупнее.',[['Копится без захода','до '+S.cap_h+' ч'],['За сутки','до '+sp(S.rate*24)]],{t:'Питомцы',f:()=>goTab('pets')})}
 function mFriends(){openM('Друзья',S.friends.length,'Когда друг в первый раз нажмёт ФАРМ, ты получишь <b>+'+sp(S.ref_bonus)+' монет</b>, а он стартовые <b>+'+sp(S.ref_bonus_friend)+'</b>. В списке зелёная галочка у тех, кто нажал ФАРМ сегодня, красный крестик у остальных.',[['Нажали сегодня',S.friends_today],['Всего друзей',S.friends.length]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Нажимай ФАРМ каждый день. С каждым днём серии награда растёт на 5% (до 10 дней). Пропустил день, серия начнётся заново.',[['Награда за следующий ФАРМ','+'+sp(S.daily_reward)],['Сегодня',S.claimed_today?'ФАРМ нажат':'ещё нет']],S.claimed_today?INVB:null)}
-function mTomorrow(){openM('Приходи завтра',leftTxt(),'ФАРМ уже нажат сегодня. Новая награда будет после 00:00 по UTC (03:00 по Москве). Пока можно продавать ресурсы и улучшать ферму.',[['Серия дней',S.streak],['Завтра','+'+sp(S.daily_reward)]],{t:'Улучшения',f:()=>goTab('upg')},INVB)}
-function mPets(){
-  $('sh-t').textContent='Питомцы';
-  $('sh-b').innerHTML='<p>Питомец поселяется на твоей ферме навсегда: больше ресурсов в час, дороже продажа и больше награда за ФАРМ. Оплата в Telegram Stars. Более высокий питомец заменяет предыдущего, платится только разница.</p><div class="tl">'
-   +S.tiers.map(t=>{const own=S.animal===t.key,free=t.stars===0,low=!own&&!free&&t.pay<=0;
-     const cls=free?'t-novice':SCOL[t.key];
-     return '<div class="tier pet '+cls+(own?' cur':'')+'" data-k="'+t.key+'"><img class="pimg" src="'+art(t.key)+'" alt=""><div class="pt"><b>'+escH(t.name)+'</b><small>'+(free?'Новичок':t.tier)+' · '+t.res+' '+t.per_h+'/ч · ФАРМ +'+sp(t.daily)+'</small></div>'
-     +'<button class="buy" data-k="'+t.key+'"'+(own||free||low?' disabled':'')+'>'+(own?'Твой':free?'База':low?'Ниже':'<img src="/static/star.png" alt="">'+t.pay)+'</button></div>'}).join('')
-   +'</div><button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;
-  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(b.dataset.k)});
-  document.querySelectorAll('.tier.pet').forEach(r=>r.onclick=e=>{if(!e.target.closest('.buy'))mPet(r.dataset.k)});
-  $('sheet').classList.add('on');
-}
+function mTomorrow(){openM('Приходи завтра',leftTxt(),'ФАРМ уже нажат сегодня. Новая награда будет после 00:00 по UTC (03:00 по Москве). Питомец тем временем приносит монеты сам.',[['Серия дней',S.streak],['Завтра','+'+sp(S.daily_reward)]],{t:'Обмен на NFT',f:mShop},INVB)}
 function mPet(k){
   const t=S.tiers.find(x=>x.key===k);if(!t)return;
   const own=S.animal===k,free=t.stars===0,low=!own&&!free&&t.pay<=0;
@@ -562,19 +589,42 @@ function mPet(k){
   $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
    +'<div class="r"><span>Уровень</span><b>'+(free?'Новичок':t.tier)+'</b></div>'
    +'<div class="r"><span>Приносит</span><b>'+t.res+', '+t.per_h+' в час</b></div>'
-   +'<div class="r"><span>Цена продажи</span><b>'+t.price+' за шт.</b></div>'
+   +'<div class="r"><span>Цена за штуку</span><b>'+t.price+' '+coinsW(t.price)+'</b></div>'
+   +'<div class="r"><span>Доход</span><b>'+sp(t.rate)+' монет в час</b></div>'
    +'<div class="r"><span>Награда за ФАРМ</span><b>+'+sp(t.daily)+'</b></div>'
-   +(own?'<button class="go low" disabled>Это твой питомец</button>':(free||low)?'':'<button class="go" id="sh-go"><img src="/static/star.png" alt="" style="width:18px;height:18px">Завести за '+t.pay+'</button>')
-   +'<button class="go ghost" id="sh-back">К списку питомцев</button>';
-  $('sh-back').onclick=mPets;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
+   +(own?'<button class="go low" disabled>Это твой питомец</button>':(free||low)?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">Завести за '+t.pay+'</button>')
+   +'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
   $('sheet').classList.add('on');
 }
 async function buy(k){
   try{
-    const link=(await (async()=>{const r=await fetch('/api/buy/'+k,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});if(!r.ok)throw 0;return r.json()})()).link;
+    const link=(await api('buy/'+k)).link;
     if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
     tg.openInvoice(link,async st=>{if(st==='paid'){closeM();setS(await api('me'));renderAll();toast('Питомец заселился на ферму');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}
+}
+async function mShop(){
+  let d=null;try{d=await api('shop')}catch(e){toast('Не удалось загрузить магазин');return}
+  SHOP=d.items;
+  $('sh-t').textContent='Обмен монет на NFT';
+  const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
+  $('sh-b').innerHTML='<p>Меняй монеты на NFT. У каждого NFT один экземпляр. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
+   +(d.items.length?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b><small>'+escH(i.descr||'Коллекционная награда')+'</small></div>'
+     +'<button class="buy" data-id="'+i.id+'"'+(S.coins<i.price?' disabled':'')+'><img src="static/coin.png" alt="">'+fmtS(i.price)+'</button></div>').join('')+'</div>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+   +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
+  $('sh-x').onclick=closeM;
+  document.querySelectorAll('#sh-b .rw .buy:not(:disabled)').forEach(b=>b.onclick=()=>buyReward(b.dataset.id));
+  document.querySelectorAll('#sh-b .rimg').forEach(im=>im.onclick=()=>{const u=im.dataset.u;if(u)tg?tg.openTelegramLink(u):window.open(u,'_blank')});
+  $('sheet').classList.add('on');
+}
+async function buyReward(id){
+  try{
+    const r=await fetch('api/shop/buy/'+id,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
+    if(!r.ok){const e=new Error(r.status);e.detail=(await r.json().catch(()=>({}))).detail;throw e}
+    setS(await r.json());renderAll();closeM();loadShop();
+    toast('Заказ принят! Администратор отправит NFT');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
+  }catch(e){toast(e.detail==='username'?'Задай username в настройках Telegram':e.detail==='stock'?'Этот NFT уже разобран':e.detail==='coins'?'Не хватает монет':'Не удалось оформить заказ')}
 }
 async function mRating(){
   let r=null;try{r=await api('rating')}catch(e){toast('Не удалось загрузить рейтинг');return}
@@ -586,47 +636,25 @@ async function mRating(){
   $('sh-x').onclick=closeM;$('sheet').classList.add('on');
   return r;
 }
-async function mShop(){
-  let d=null;try{d=await api('shop')}catch(e){toast('Не удалось загрузить магазин');return}
-  $('sh-t').textContent='Магазин наград';
-  const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
-  $('sh-b').innerHTML='<p>Коллекционные награды за монеты. Тираж каждой ограничен. Награду выдаёт администратор вручную на твой @username в Telegram. Монеты в Telegram Stars не обмениваются.</p>'
-   +(d.items.length?'<div class="tl">'+d.items.map(i=>'<div class="rw"><div class="rt"><b>'+escH(i.title)+'</b><small>'+escH(i.descr||'Коллекционная награда')+' · осталось '+i.stock+'</small></div>'
-     +'<button class="buy" data-id="'+i.id+'"'+(S.coins<i.price?' disabled':'')+'><img src="/static/star.png" alt="">'+fmtS(i.price)+'</button></div>').join('')+'</div>':'<p>Пока наград нет. Скоро появятся коллекционные призы.</p>')
-   +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;
-  document.querySelectorAll('#sh-b .rw .buy:not(:disabled)').forEach(b=>b.onclick=()=>buyReward(b.dataset.id));
-  $('sheet').classList.add('on');
-}
-async function buyReward(id){
-  try{
-    const r=await fetch('/api/shop/buy/'+id,{method:'POST',headers:{'X-Init-Data':tg?tg.initData:''}});
-    if(!r.ok){const e=new Error(r.status);e.detail=(await r.json().catch(()=>({}))).detail;throw e}
-    setS(await r.json());renderAll();closeM();
-    toast('Заказ принят! Администратор выдаст награду');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}
-  }catch(e){toast(e.detail==='username'?'Задай username в настройках Telegram':e.detail==='stock'?'Награда закончилась':e.detail==='coins'?'Не хватает монет':'Не удалось оформить заказ')}
-}
 async function loadRank(){try{const r=await api('rating');$('p-rank').textContent=r.rank?'#'+r.rank:'—'}catch(e){}}
 function mInfo(){
   $('sh-t').textContent='Как играть';
   $('sh-b').innerHTML='<div class="tl">'
    +'<div class="inf"><h4>1. ФАРМ</h4><p>Раз в день нажимай <b>ФАРМ</b> и получай монеты. Новая награда доступна после 00:00 по UTC (03:00 по Москве). С каждым днём серии награда растёт.</p></div>'
-   +'<div class="inf"><h4>2. Склад и продажа</h4><p>Твой питомец каждый час приносит ресурсы: картошку, перья, морковь, мышей или кувшинки. Они копятся на складе. Нажми <b>«Продать»</b>, и ресурсы превратятся в монеты.</p></div>'
-   +'<div class="inf"><h4>3. Улучшения</h4><p>За монеты улучшай <b>Амбар</b> (больше места), <b>Кормушку</b> (больше ресурсов) и <b>Рынок</b> (дороже продажа).</p></div>'
-   +'<div class="inf"><h4>4. Питомцы</h4><p>За Telegram Stars можно завести уточку, зайку, кошку или лягушку: больше ресурсов и награда за ФАРМ. Это покупка игровых предметов, а не вклад: монеты в Stars не обмениваются.</p></div>'
-   +'<div class="inf"><h4>5. Друзья</h4><p>Когда друг впервые нажмёт ФАРМ, ты получишь <b>+'+sp(S?S.ref_bonus:200)+' монет</b>.</p></div>'
-   +'<div class="inf"><h4>6. Магазин наград</h4><p>За монеты можно получить коллекционные награды в ограниченном количестве. Их выдаёт администратор вручную. Монеты в Telegram Stars не обмениваются.</p></div>'
-   +'<div class="inf"><h4>7. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Призы не гарантируются, условия объявляет администратор. Смотри «Рейтинг» в профиле.</p></div>'
+   +'<div class="inf"><h4>2. Питомец работает за тебя</h4><p>Фермер, а потом уточка, зайка, кошка и лягушка каждый час приносят ресурсы, которые сразу превращаются в монеты. Монеты копятся до 8 часов, даже когда тебя нет. Питомцы заводятся во вкладке «Питомцы» за Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>3. Обмен монет на NFT</h4><p>Копи монеты и меняй их на NFT. Наборы показаны в баннере на главной, а обмен открывается по нажатию на него или на баланс монет. У каждого NFT один экземпляр, выдаёт администратор вручную.</p></div>'
+   +'<div class="inf"><h4>4. Друзья</h4><p>Когда друг впервые нажмёт ФАРМ, ты получишь <b>+'+sp(S?S.ref_bonus:200)+' монет</b>.</p></div>'
+   +'<div class="inf"><h4>5. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Монеты в Stars не обмениваются, призы не гарантируются, условия объявляет администратор.</p></div>'
    +'</div><button class="go" id="sh-go">Показать обучение</button><button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;$('sh-go').onclick=()=>{closeM();showOb()};
   $('sheet').classList.add('on');
 }
 /* ---------- онбординг ---------- */
 const OB=[
- {t:'Нажимай ФАРМ',s:'Раз в день нажми <b>ФАРМ</b> и получи монеты. Чем дольше серия, тем больше награда.',i:'<img class="obimg" src="/static/art/farmer.svg" alt="">'},
- {t:'Собирай и продавай',s:'Питомец каждый час приносит ресурсы. Продавай их на рынке за монеты и улучшай ферму.',i:'<img class="obimg" src="/static/art/bunny.svg" alt="">'},
- {t:'Заведи питомца',s:'Уточка, зайка, кошка и лягушка за <b>Telegram Stars</b> приносят больше ресурсов. Это игровые предметы, монеты в Stars не обмениваются.',i:'<img class="obimg" src="/static/art/duck.svg" alt="">'},
- {t:'Рейтинг и призы',s:'Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Призы не гарантируются.',i:'<img class="obimg" src="/static/art/frog.svg" alt="">'}
+ {t:'Нажимай ФАРМ',s:'Раз в день нажми <b>ФАРМ</b> и получи монеты. Чем дольше серия, тем больше награда.',i:'<img class="obimg" src="static/art/farmer.svg" alt="">'},
+ {t:'Питомцы работают за тебя',s:'Уточка, зайка, кошка и лягушка приносят монеты каждый час, даже когда тебя нет. Заводятся за <b>Telegram Stars</b>.',i:'<img class="obimg" src="static/art/bunny.svg" alt="">'},
+ {t:'Обменивай монеты на NFT',s:'Копи монеты и меняй их на <b>NFT</b>: у каждого один экземпляр. Смотри, какие NFT можно получить, в баннере на главной.',i:'<img class="obimg" src="static/nft/196787.jpg" alt="">'},
+ {t:'Рейтинг и призы',s:'Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Призы не гарантируются.',i:'<img class="obimg" src="static/art/frog.svg" alt="">'}
 ];
 let obI=0;
 function obDraw(){
@@ -638,23 +666,22 @@ function obDraw(){
   $('ob-skip').style.visibility=obI===OB.length-1?'hidden':'visible';
 }
 function showOb(){obI=0;obDraw();$('ob').classList.add('on')}
-function hideOb(){$('ob').classList.remove('on');try{localStorage.setItem('fs_ob3','1')}catch(e){}}
+function hideOb(){$('ob').classList.remove('on');try{localStorage.setItem('fs_ob4','1')}catch(e){}}
 $('ob-next').onclick=()=>{if(obI<OB.length-1){obI++;obDraw()}else hideOb()};
 $('ob-skip').onclick=hideOb;
-function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob3')==='1'}catch(e){}if(!seen)showOb()}
+function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob4')==='1'}catch(e){}if(!seen)showOb()}
 /* ---------- события ---------- */
 $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
-$('bcard').onclick=e=>{if(S&&!e.target.closest('#sell'))mBarn()};
+$('nftban').onclick=()=>S&&mShop();
 $('scene').onclick=()=>S&&mPet(S.animal);
+$('rateline').onclick=()=>S&&mIncome();
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();
-$('stcard').onclick=()=>S&&mPets();
-$('badge').onclick=()=>S&&mPets();
+$('m-rate').onclick=()=>S&&mIncome();
+$('badge').onclick=()=>S&&goTab('pets');
 $('m-rank').onclick=()=>S&&mRating();
-$('ucap').onclick=()=>S&&mBarn();
-$('shopcard').onclick=()=>S&&mShop();
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goTab(b.dataset.t));
 setInterval(()=>{
   if(!S)return;
@@ -669,7 +696,7 @@ if(u){
   else $('ava').textContent=(u.first_name||'?')[0].toUpperCase();
 }
 if(!tg||!tg.initData){$('out').classList.add('on')}
-else api('me').then(s=>{setS(s);renderAll();maybeOb();loadRank()}).catch(()=>toast('Ошибка загрузки'));
+else api('me').then(s=>{setS(s);renderAll();maybeOb();loadRank();loadShop()}).catch(()=>toast('Ошибка загрузки'));
 </script>
 </body>
 </html>
