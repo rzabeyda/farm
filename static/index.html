@@ -431,7 +431,7 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
       </div>
       <div class="duo">
-        <div class="mini" id="m-rate"><small>В сутки</small><b id="p-rate">+0</b></div>
+        <div class="mini" id="m-rate"><small>В час</small><b id="p-rate">+0</b></div>
         <div class="mini" id="m-rank"><small>Рейтинг</small><b id="p-rank">—</b></div>
       </div>
       <div class="card fl"><div id="fl"></div></div>
@@ -573,7 +573,7 @@ function renderProfile(){
   $('p-friends').textContent=S.friends.length;
   $('fl').innerHTML=S.friends.length?S.friends.map(f=>'<div class="row"><span>'+escH(f.name)+'</span><div class="mk '+(f.done?'y':'n')+'">'+(f.done?ck:xx)+'</div></div>').join(''):'<div class="empty">Пока никого нет<button class="go" id="fl-inv">'+INV_ICON+'Пригласить</button></div>';
   $('sk-n').textContent=S.streak+' '+plural(S.streak,'день','дня','дней');
-  $('p-rate').textContent='+'+sp(S.rate*24);
+  $('p-rate').textContent='+'+dec(S.rate)+' '+coinsW(S.rate);
   const own=S.status&&S.tiers.find(x=>x.key===S.status);
   $('me').className='card me'+(own?' s-'+own.key:'');$('badge').textContent=S.animal_name;
   const fi=$('fl-inv');if(fi)fi.onclick=invite;
@@ -581,7 +581,7 @@ function renderProfile(){
 function renderAll(){renderHome();renderPets();renderProfile()}
 /* ---------- окна ---------- */
 function mBalance(){openM('Твои монеты',fmt(liveCoins()),'Монеты приносит твой питомец, пока ферма работает. Их можно обменять на NFT. В Telegram Stars монеты не обмениваются.',[['Доход в сутки','+'+sp(S.rate*24)],['Ферма',S.farming?'работает':'остановлена']],{t:'Обмен на NFT',f:mShop},{t:'Питомцы',f:()=>goTab('pets')},{t:'Рейтинг сезона',f:mRating})}
-function mIncome(){openM('Доход питомца','+'+sp(S.rate*24)+' в сутки',S.animal_name+' приносит монеты круглые сутки, пока ты раз в день заходишь и нажимаешь ФАРМ. Пропустил день, ферма остановится до следующего ФАРМ. Чтобы получать больше, заведи питомца покрупнее.',[['Ферма',S.farming?'работает':'остановлена']],{t:'Питомцы',f:()=>goTab('pets')})}
+function mIncome(){openM('Доход питомца','+'+dec(S.rate)+' в час',S.animal_name+' приносит монеты круглые сутки, пока ты раз в день заходишь и нажимаешь ФАРМ. Пропустил день, ферма остановится до следующего ФАРМ. Чтобы получать больше, заведи питомца покрупнее.',[['Доход в час','+'+dec(S.rate)],['Доход в сутки','+'+sp(S.rate*24)],['Ферма',S.farming?'работает':'остановлена']],{t:'Питомцы',f:()=>goTab('pets')})}
 function mFriends(){openM('Друзья',S.friends.length,'Когда друг в первый раз нажмёт ФАРМ, ты получишь <b>+'+sp(S.ref_bonus)+' монет</b>, а он стартовые <b>+'+sp(S.ref_bonus_friend)+'</b>. В списке зелёная галочка у тех, кто нажал ФАРМ сегодня, красный крестик у остальных.',[['Нажали сегодня',S.friends_today],['Всего друзей',S.friends.length]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Нажимай ФАРМ каждый день, и ферма не остановится. Серия показывает, сколько дней подряд ты это делаешь. Пропустил день, серия начнётся заново.',[['Серия дней',S.streak],['Сегодня',S.claimed_today?'ФАРМ нажат':'ещё нет']],S.claimed_today?INVB:null)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'ФАРМ уже нажат сегодня, ферма работает. Нажми снова завтра после 00:00 по UTC (03:00 по Москве), чтобы она не остановилась.',[['Серия дней',S.streak],['Доход в сутки','+'+sp(S.rate*24)]],{t:'Обмен на NFT',f:mShop},INVB)}
