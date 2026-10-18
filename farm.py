@@ -10,6 +10,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
+STREAK_STEP = 1                # +монет в сутки за каждый день серии ФАРМ подряд
 REF_BONUS = 50                # монет приглашающему, когда друг нажал ФАРМ: сразу в первый раз и потом в каждый день, когда друг играет
 REF_CAP = 20                 # столько друзей в день приносят бонус (защита от накрутки аккаунтами)
 
@@ -52,6 +53,11 @@ def rate_of(pets):
     return coin_rate("farmer") + sum(n * coin_rate(k) for k, n in pets.items())
 
 
+def streak_rate(streak):
+    """Серия ФАРМ: каждый день подряд добавляет +1 монету в сутки к доходу (в час это 1/24)."""
+    return max(0, int(streak or 0)) * STREAK_STEP / 24.0
+
+
 def tier_of(row):
     return top_pet(pets_of(row))
 
@@ -59,7 +65,7 @@ def tier_of(row):
 def stats(row):
     pets = pets_of(row)
     k = top_pet(pets)
-    return dict(tier=k, t=TIERS[k], rate=rate_of(pets), pets=pets)
+    return dict(tier=k, t=TIERS[k], rate=rate_of(pets) + streak_rate(row["streak"]), pets=pets)
 
 
 def farm_until_for(now=None):

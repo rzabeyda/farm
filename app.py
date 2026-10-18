@@ -223,7 +223,7 @@ def state(c, uid, now=None):
                       "owned": 1 if k == "farmer" else st["pets"].get(k, 0)})
     return {
         "coins": round(u["points"], 2),
-        "rate": st["rate"],
+        "rate": farm.rate_of(st["pets"]) + farm.streak_rate(streak), "streak_bonus": streak,
         "ref_bonus": farm.REF_BONUS, "ref_cap": farm.REF_CAP, "ref_today": ref_today,
         "farm_until": until, "farming": until > now,
         "is_admin": bool(ADMIN_ID) and uid == ADMIN_ID,
