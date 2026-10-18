@@ -504,11 +504,12 @@ def api_rating(x_init_data: str = Header()):
     with closing(db()) as c:
         top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"]}
                for r in c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
-                                  "ORDER BY season_points DESC, id LIMIT 10")]
+                                  "AND id<>? ORDER BY season_points DESC, id LIMIT 10", (ADMIN_ID or 0,))]
         me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
         rank = None
-        if me and me["season_points"] > 0:
-            rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>?", (me["season_points"],)).fetchone()[0]
+        if me and me["season_points"] > 0 and u["id"] != ADMIN_ID:     # админ в рейтинге не участвует
+            rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>? AND id<>?",
+                             (me["season_points"], ADMIN_ID or 0)).fetchone()[0]
     return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0}
 
 
