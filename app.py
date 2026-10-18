@@ -30,7 +30,6 @@ BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
 NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
-DEFAULT_PRIZE = "Лучшие игроки сезона получают призы в Telegram Stars из призового фонда. Размер фонда и условия объявляет администратор."
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
@@ -58,6 +57,7 @@ def init_db():
           amount INTEGER NOT NULL, created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id));
+        CREATE TABLE IF NOT EXISTS ref_credit(day TEXT NOT NULL, inviter INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, inviter));
         CREATE TABLE IF NOT EXISTS rewards(
           id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, descr TEXT NOT NULL DEFAULT '',
           price INTEGER NOT NULL, stock INTEGER NOT NULL, active INTEGER NOT NULL DEFAULT 1, created INTEGER NOT NULL);
@@ -199,11 +199,12 @@ def state(c, uid, now=None):
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
     until = u["farm_until"] or 0
-    friends = [{"name": _name(f), "done": bool(f["ref_active"]) and (f["farm_until"] or 0) > now}
-               for f in c.execute("SELECT id,username,first_name,ref_active,farm_until FROM users WHERE referrer_id=? "
-                                  "ORDER BY (ref_active=1 AND farm_until>?) DESC, created", (uid, now))]
+    friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t}
+               for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
+                                  "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = sum(1 for f in friends if f["done"])
-    ref_rate = farm.REF_RATE * min(refs_active, farm.REF_CAP)
+    got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, uid)).fetchone()
+    ref_today = (got["n"] if got else 0) * farm.REF_BONUS
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "short": v.get("short", v["name"]), "stars": v["stars"], "rate": farm.coin_rate(k),
@@ -211,8 +212,8 @@ def state(c, uid, now=None):
                       "owned": 1 if k == "farmer" else st["pets"].get(k, 0)})
     return {
         "coins": round(u["points"], 2),
-        "rate": st["rate"], "ref_rate": ref_rate, "rate_total": st["rate"] + ref_rate,
-        "ref_per": farm.REF_RATE, "ref_cap": farm.REF_CAP,
+        "rate": st["rate"],
+        "ref_bonus": farm.REF_BONUS, "ref_cap": farm.REF_CAP, "ref_today": ref_today,
         "farm_until": until, "farming": until > now,
         "is_admin": bool(ADMIN_ID) and uid == ADMIN_ID,
         "animal": st["tier"], "animal_name": st["t"]["name"],
@@ -371,8 +372,16 @@ async def api_claim(x_init_data: str = Header()):
         first = row["claim_days"] == 0
         c.execute("UPDATE users SET last_claim=?, streak=?, claim_days=claim_days+1, farm_until=?, res_ts=? WHERE id=?",
                   (t, streak, farm.farm_until_for(), time.time(), u["id"]))
-        if first and row["referrer_id"]:
-            c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
+        inv = row["referrer_id"]
+        if inv:
+            if first:
+                c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
+            got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, inv)).fetchone()
+            if (got["n"] if got else 0) < farm.REF_CAP:
+                # друг нажал ФАРМ: приглашающему +REF_BONUS (в первый раз сразу, затем в каждый день, когда друг играет)
+                c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?",
+                          (farm.REF_BONUS, farm.REF_BONUS, inv))
+                c.execute("INSERT INTO ref_credit(day,inviter,n) VALUES(?,?,1) ON CONFLICT(day,inviter) DO UPDATE SET n=n+1", (t, inv))
         c.commit()
         s = state(c, u["id"])
         s["reward"] = 0
@@ -434,17 +443,17 @@ async def api_shop_buy(rid: int, x_init_data: str = Header()):
 
 @app.post("/api/rating")
 def api_rating(x_init_data: str = Header()):
+    """Топ 10 игроков по заработанным монетам за всё время (потраченные тоже считаются)."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
         top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"]}
                for r in c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
-                                  "ORDER BY season_points DESC, id LIMIT 20")]
+                                  "ORDER BY season_points DESC, id LIMIT 10")]
         me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
         rank = None
         if me and me["season_points"] > 0:
             rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>?", (me["season_points"],)).fetchone()[0]
-    return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0,
-            "season_start": meta_get("season_start") or "", "prize": meta_get("prize") or DEFAULT_PRIZE}
+    return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0}
 
 
 @app.post("/api/buy/{key}")
@@ -510,9 +519,8 @@ def admin_only(uid):
 def admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
-         InlineKeyboardButton(text="Рейтинг сезона", callback_data="adm:rating")],
-        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top"),
-         InlineKeyboardButton(text="Новый сезон", callback_data="adm:ns")],
+         InlineKeyboardButton(text="Топ игроков", callback_data="adm:rating")],
+        [InlineKeyboardButton(text="Топ рефоводов", callback_data="adm:top")],
         [InlineKeyboardButton(text="Заказы наград", callback_data="adm:orders")],
         [InlineKeyboardButton(text="Разослать напоминания", callback_data="adm:remind"),
          InlineKeyboardButton(text="Бэкап сейчас", callback_data="adm:backup")]])
@@ -652,17 +660,6 @@ async def order_cb(q: CallbackQuery):
         pass
 
 
-@dp.message(Command("prize"))
-async def set_prize(m: Message, command: CommandObject):
-    if not admin_only(m.from_user.id):
-        return
-    if not (command.args or "").strip():
-        await m.answer("Использование: /prize ТЕКСТ (его увидят игроки в рейтинге). Сейчас:\n" + (meta_get("prize") or DEFAULT_PRIZE))
-        return
-    meta_set("prize", command.args.strip()[:500])
-    await m.answer("Текст призов сохранён")
-
-
 async def show(q, text, kb):
     try:
         await q.message.edit_text(text, reply_markup=kb)
@@ -689,24 +686,10 @@ async def admin_cb(q: CallbackQuery):
         with closing(db()) as c:
             rows = c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
                              "ORDER BY season_points DESC LIMIT 15").fetchall()
-        text = f"Рейтинг сезона (с {meta_get('season_start') or 'начала'}):\n\n" + (
+        text = "Топ игроков (заработано монет за всё время):\n\n" + (
             "\n".join(f"{i}. {_name(r)}" + (f" (@{r['username']})" if r["username"] else "") + f": {r['season_points']:,.0f}"
                       for i, r in enumerate(rows, 1)) or "Пока пусто")
         await show(q, text, admin_kb())
-    elif parts[1] == "ns":
-        if len(parts) > 2 and parts[2] == "yes":
-            with closing(db()) as c:
-                c.execute("UPDATE users SET season_points=0")
-                c.commit()
-            meta_set("season_start", today())
-            note = "Новый сезон начат, очки рейтинга обнулены"
-            await show(q, stats_text(), admin_kb())
-        else:
-            kb = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="Да, начать новый сезон", callback_data="adm:ns:yes"),
-                InlineKeyboardButton(text="Отмена", callback_data="adm:stats")]])
-            await show(q, "Начать новый сезон? Очки рейтинга у всех обнулятся (монеты игроков останутся). "
-                          "Сначала выплати призы за текущий сезон.", kb)
     elif parts[1] == "orders":
         if len(parts) > 3 and parts[2] == "done":
             note = "Выдано" if await fulfill_order(int(parts[3])) else "Уже выдана"
@@ -761,8 +744,7 @@ async def start(m: Message, command: CommandObject):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     text = ("Привет, фермер! Добро пожаловать на ферму.\n\n"
-            "Нажимай ФАРМ раз в день: ферма и питомцы (Utya, Bunny, Scared Cat, Pepe) приносят монеты круглые сутки. Копи монеты и обменивай их на NFT. "
-            "Лучшие игроки сезона получают призы в Telegram Stars.")
+            "Нажимай ФАРМ раз в день: ферма и питомцы (Utya, Bunny, Scared Cat, Pepe) приносят монеты круглые сутки. Копи монеты и обменивай их на NFT.")
     global WELCOME_FILE_ID
     try:
         sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "welcome.png")),

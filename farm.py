@@ -10,8 +10,8 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-REF_RATE = 2                # монет в час от каждого активного друга (друг заходит и нажимает ФАРМ каждый день)
-REF_CAP = 20                # учитываются не больше стольких друзей одновременно (защита от накрутки)
+REF_BONUS = 100               # монет приглашающему, когда друг нажал ФАРМ: сразу в первый раз и потом в каждый день, когда друг играет
+REF_CAP = 20                 # столько друзей в день приносят бонус (защита от накрутки аккаунтами)
 
 # Питомцы: stars - цена в Telegram Stars, rate - монет в час (у питомца ровно один показатель дохода).
 # Баланс: доход на 1 Star растёт с ценой питомца в пропорции 30 : 27 : 24 : 21 (Utya : Bunny : Cat : Pepe),
@@ -70,9 +70,7 @@ def farm_until_for(now=None):
 
 
 def settle(c, uid, now=None):
-    """Начисляет монеты за время, пока ферма была включена (до farm_until): доход питомца плюс доход от друзей.
-    Друг приносит REF_RATE в час, пока его ферма включена (он нажимает ФАРМ каждый день); считается не больше REF_CAP друзей.
-    Вызывать внутри транзакции."""
+    """Начисляет монеты за время, пока ферма была включена (до farm_until). Вызывать внутри транзакции."""
     now = now or time.time()
     row = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     st = stats(row)
@@ -82,21 +80,6 @@ def settle(c, uid, now=None):
     end = min(now, until)
     if last and end > last:
         gain = st["rate"] * (end - last) / 3600.0
-        overlaps = []
-        for f in c.execute("SELECT farm_until FROM users WHERE referrer_id=? AND ref_active=1 AND farm_until>?", (uid, last)):
-            fu = f["farm_until"]
-            # окно друга: сутки нажатия ФАРМ и следующие сутки (см. farm_until_for)
-            ov = min(end, fu) - max(last, fu - 2 * 86400)
-            if ov > 0:
-                overlaps.append(ov)
-        overlaps.sort(reverse=True)
-        gain += REF_RATE * sum(overlaps[:REF_CAP]) / 3600.0
     c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res_ts=? WHERE id=?",
               (gain, gain, now, uid))
     return gain
-
-
-def active_friends(c, uid, now=None):
-    """Сколько друзей сейчас приносят монеты (их ферма включена)."""
-    now = now or time.time()
-    return c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND farm_until>?", (uid, now)).fetchone()[0]
