@@ -628,7 +628,7 @@ function mPet(k){
    +'<div class="r"><span>'+(free?'Доход':'Доход одного')+'</span><b>+'+sp(t.rate*24)+' '+coinsW(t.rate*24)+' в сутки</b></div>'
    +(free?'':'<div class="r"><span>У тебя</span><b>'+(cnt>0?cnt+' шт.':'нет')+'</b></div>')
    +(!free&&cnt>1?'<div class="r"><span>Все вместе</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
-   +'<div class="r"><span>Без захода</span><b>фармится минимум 24 часа</b></div>'
+   +'<div class="r"><span>Фарм</span><b>раз в сутки</b></div>'
    +(S.is_admin&&np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
    +(free?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">'+(cnt>0?'Купить ещё за ':'Завести за ')+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
