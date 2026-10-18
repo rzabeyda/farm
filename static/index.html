@@ -628,7 +628,9 @@ function mPet(k){
 }
 async function buy(k){
   try{
-    const link=(await api('buy/'+k)).link;
+    const r=await api('buy/'+k);
+    if(r.granted){setS(r);renderAll();closeM();toast('Тест: питомец добавлен бесплатно');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}return}
+    const link=r.link;
     if(!tg||!tg.openInvoice){toast('Открой приложение в Telegram');return}
     tg.openInvoice(link,async st=>{if(st==='paid'){closeM();setS(await api('me'));renderAll();toast('Питомец заселился на ферму');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}

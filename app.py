@@ -475,6 +475,22 @@ async def api_buy(key: str, x_init_data: str = Header()):
     with closing(db()) as c:
         ensure_user(c, u["id"], u.get("username"), u.get("first_name"))
         c.commit()
+    if admin_only(u["id"]):
+        # тест для админа: питомец выдаётся бесплатно, без счёта в Stars (платёж не создаётся и в выручку не попадает)
+        with closing(db()) as c:
+            c.execute("BEGIN IMMEDIATE")
+            farm.settle(c, u["id"])          # до смены питомцев доход считается по старой ставке
+            row = c.execute("SELECT pets FROM users WHERE id=?", (u["id"],)).fetchone()
+            try:
+                d = json.loads(row["pets"] or "{}") if row else {}
+            except Exception:
+                d = {}
+            d[key] = int(d.get(key, 0)) + 1
+            c.execute("UPDATE users SET pets=? WHERE id=?", (json.dumps(d), u["id"]))
+            c.commit()
+            s = state(c, u["id"])
+        s["granted"] = key
+        return s
     pay = STATUSES[key][0]          # питомцев можно покупать по несколько штук, цена всегда полная
     name = STATUSES[key][2]
     link = await bot.create_invoice_link(
