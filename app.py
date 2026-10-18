@@ -78,7 +78,8 @@ def init_db():
                     "ALTER TABLE users ADD COLUMN upg TEXT NOT NULL DEFAULT '{}'",
                     "ALTER TABLE users ADD COLUMN res REAL",
                     "ALTER TABLE users ADD COLUMN res_ts REAL",
-                    "ALTER TABLE users ADD COLUMN farm_until REAL"):
+                    "ALTER TABLE users ADD COLUMN farm_until REAL",
+                    "ALTER TABLE users ADD COLUMN pets TEXT NOT NULL DEFAULT '{}'"):
             try:
                 c.execute(ddl)
             except sqlite3.OperationalError:
@@ -99,7 +100,7 @@ def init_db():
         # v3: нераспроданные ресурсы превращаются в монеты (ресурсы больше не копятся на складе)
         if not c.execute("SELECT 1 FROM meta WHERE k='farm3_import'").fetchone():
             for r in c.execute("SELECT id,status,res FROM users WHERE res IS NOT NULL AND res>=1").fetchall():
-                k = farm.tier_of(r)
+                k = r["status"] if r["status"] in farm.TIERS else "farmer"
                 gain = int(r["res"]) * farm.TIERS[k]["price"]
                 c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res=0 WHERE id=?", (gain, gain, r["id"]))
             c.execute("INSERT INTO meta(k,v) VALUES('farm3_import','1')")
@@ -109,6 +110,12 @@ def init_db():
                 d = datetime.strptime(r["last_claim"], "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=2)
                 c.execute("UPDATE users SET farm_until=? WHERE id=?", (d.timestamp(), r["id"]))
             c.execute("INSERT INTO meta(k,v) VALUES('farm4','1')")
+        # v5: питомцев можно иметь много и разных видов (раньше был один статус)
+        if not c.execute("SELECT 1 FROM meta WHERE k='pets5'").fetchone():
+            for r in c.execute("SELECT id,status FROM users WHERE status<>'' AND status IS NOT NULL").fetchall():
+                if r["status"] in farm.PAID:
+                    c.execute("UPDATE users SET pets=? WHERE id=? AND pets='{}'", (json.dumps({r["status"]: 1}), r["id"]))
+            c.execute("INSERT INTO meta(k,v) VALUES('pets5','1')")
         # стартовый набор NFT для обмена (один раз)
         if not c.execute("SELECT 1 FROM meta WHERE k='nft_seed'").fetchone():
             for nid in NFT_IDS:
@@ -180,16 +187,6 @@ def user_from(init_data):
     return d["user"], parse_ref(d.get("start_param"))
 
 
-def status_of(c, uid):
-    r = c.execute("SELECT status FROM users WHERE id=?", (uid,)).fetchone()
-    return r["status"] if r and r["status"] in STATUSES else ""
-
-
-def status_price(c, uid, key):
-    cur = status_of(c, uid)
-    return STATUSES[key][0] - (STATUSES[cur][0] if cur else 0)
-
-
 def _name(r):
     return r["first_name"] or (r["username"] and "@" + r["username"]) or f"id {r['id']}"
 
@@ -210,7 +207,8 @@ def state(c, uid, now=None):
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "short": v.get("short", v["name"]), "stars": v["stars"], "rate": farm.coin_rate(k),
-                      "pay": status_price(c, uid, k) if k in STATUSES else 0})
+                      "pay": STATUSES[k][0] if k in STATUSES else 0,
+                      "owned": 1 if k == "farmer" else st["pets"].get(k, 0)})
     return {
         "coins": round(u["points"], 2),
         "rate": st["rate"], "ref_rate": ref_rate, "rate_total": st["rate"] + ref_rate,
@@ -220,7 +218,8 @@ def state(c, uid, now=None):
         "animal": st["tier"], "animal_name": st["t"]["name"],
         "claimed_today": claimed, "streak": streak, "today": t,
         "friends": friends, "friends_today": refs_active, "refs": refs_active,
-        "status": status_of(c, uid),
+        "pets": [{"key": k, "name": farm.TIERS[k]["name"], "count": 1 if k == "farmer" else st["pets"].get(k, 0)}
+                 for k in farm.TIERS if k == "farmer" or st["pets"].get(k, 0) > 0],
         "tiers": tiers,
         "season_points": round(u["season_points"], 2),
         "link": f"https://t.me/{BOT_USERNAME}?startapp=ref_{uid}",
@@ -456,13 +455,10 @@ async def api_buy(key: str, x_init_data: str = Header()):
     with closing(db()) as c:
         ensure_user(c, u["id"], u.get("username"), u.get("first_name"))
         c.commit()
-        cur = status_of(c, u["id"])
-        if cur and STATUSES[cur][0] >= STATUSES[key][0]:
-            raise HTTPException(400, "have")
-        pay = status_price(c, u["id"], key)
+    pay = STATUSES[key][0]          # питомцев можно покупать по несколько штук, цена всегда полная
     name = STATUSES[key][2]
     link = await bot.create_invoice_link(
-        title=f"Питомец: {name}", description=f"{name} поселится на твоей ферме навсегда и будет приносить ресурсы",
+        title=f"Питомец: {name}", description=f"{name} поселится на твоей ферме навсегда и будет приносить монеты. Питомцев можно иметь несколько",
         payload=f"status:{key}:{u['id']}", currency="XTR", prices=[LabeledPrice(label=f"Питомец {name}", amount=pay)])
     return {"link": link}
 
@@ -472,12 +468,10 @@ async def pre_checkout(q: PreCheckoutQuery):
     ok = False
     try:
         _, key, uid = q.invoice_payload.split(":")
-        with closing(db()) as c:
-            cur = status_of(c, int(uid))
-            ok = key in STATUSES and int(uid) == q.from_user.id and not (cur and STATUSES[cur][0] >= STATUSES[key][0])
+        ok = key in STATUSES and int(uid) == q.from_user.id
     except Exception:
         pass
-    await q.answer(ok=ok, error_message=None if ok else "Этот питомец уже недоступен для покупки")
+    await q.answer(ok=ok, error_message=None if ok else "Не удалось оформить покупку питомца")
 
 
 @dp.message(F.successful_payment)
@@ -490,7 +484,14 @@ async def paid_status(m: Message):
             return
         c.execute("INSERT INTO payments(charge_id,user_id,status,amount,created) VALUES(?,?,?,?,?)",
                   (sp.telegram_payment_charge_id, uid, key, sp.total_amount, int(time.time())))
-        c.execute("UPDATE users SET status=? WHERE id=?", (key, uid))
+        farm.settle(c, uid)          # до смены питомцев доход считается по старой ставке
+        row = c.execute("SELECT pets FROM users WHERE id=?", (uid,)).fetchone()
+        try:
+            d = json.loads(row["pets"] or "{}") if row else {}
+        except Exception:
+            d = {}
+        d[key] = int(d.get(key, 0)) + 1
+        c.execute("UPDATE users SET pets=? WHERE id=?", (json.dumps(d), uid))
         c.commit()
     await m.answer(f"{STATUSES[key][2]} теперь живёт на твоей ферме")
     if ADMIN_ID:
@@ -531,7 +532,7 @@ def stats_text():
         with_refs = q("SELECT COUNT(*) FROM users WHERE referrer_id IS NOT NULL")
         pts = q("SELECT COALESCE(SUM(points),0) FROM users")
         buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
-        st = {k: q("SELECT COUNT(*) FROM users WHERE status=?", k) for k in STATUSES}
+        st = {k: q("SELECT COUNT(*) FROM payments WHERE status=?", k) for k in STATUSES}
     return (f"Статистика Фермы\n\n"
             f"Всего вошло в бота: {total}\n"
             f"Новых: сегодня {new_today}, вчера {new_yday}, за 7 дней {new_week}\n"

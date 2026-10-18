@@ -6,6 +6,7 @@
 Монеты - внутриигровая валюта. Питомцы покупаются за Telegram Stars (игровые предметы).
 Монеты НЕ обмениваются на Telegram Stars: их можно потратить на ограниченные награды (NFT) в магазине.
 """
+import json
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -29,13 +30,35 @@ def coin_rate(tier):
     return t["per_h"] * t["price"]
 
 
+def pets_of(row):
+    """Питомцы игрока: {ключ: сколько штук}. Фермер есть у всех и сюда не входит. Купить можно любых и по нескольку."""
+    try:
+        d = json.loads(row["pets"] or "{}")
+    except Exception:
+        d = {}
+    return {k: int(d.get(k, 0)) for k in PAID if int(d.get(k, 0)) > 0}
+
+
+def top_pet(pets):
+    for k in reversed(PAID):
+        if pets.get(k):
+            return k
+    return "farmer"
+
+
+def rate_of(pets):
+    """Доход в час: доход фермера плюс доход каждого купленного питомца (складывается)."""
+    return coin_rate("farmer") + sum(n * coin_rate(k) for k, n in pets.items())
+
+
 def tier_of(row):
-    return row["status"] if row["status"] in TIERS else "farmer"
+    return top_pet(pets_of(row))
 
 
 def stats(row):
-    k = tier_of(row)
-    return dict(tier=k, t=TIERS[k], rate=coin_rate(k))
+    pets = pets_of(row)
+    k = top_pet(pets)
+    return dict(tier=k, t=TIERS[k], rate=rate_of(pets), pets=pets)
 
 
 def farm_until_for(now=None):
