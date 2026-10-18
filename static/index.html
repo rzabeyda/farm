@@ -450,7 +450,7 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
 
   <nav>
     <button class="on" data-t="home">
-      <img src="static/coin.png" width="26" height="26" alt="" draggable="false">Фарм</button>
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9"/><path d="M12 13c0-3.6-2.4-5.8-6.5-5.8 0 3.8 2.4 5.8 6.5 5.8z"/><path d="M12 11c0-3.2 2.2-5.2 6.5-5.2 0 3.4-2.4 5.2-6.5 5.2z"/><path d="M7 21h10"/></svg>Фарм</button>
     <button data-t="pets">
       <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor"><ellipse cx="6.5" cy="10" rx="2.1" ry="2.8"/><ellipse cx="10.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="15.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="19.2" cy="10" rx="2.1" ry="2.8"/><path d="M12.8 11.4c-2.6 0-5.4 3-5.4 5.7 0 1.8 1.4 2.9 3.1 2.9 1 0 1.5-.4 2.3-.4s1.3.4 2.3.4c1.7 0 3.1-1.1 3.1-2.9 0-2.7-2.8-5.7-5.4-5.7z"/></svg>Питомцы</button>
     <button data-t="profile">
@@ -609,7 +609,7 @@ function remindFriend(u,done){
 }
 function renderAll(){renderHome();renderPets();renderProfile()}
 /* ---------- окна ---------- */
-function mBalance(){openM('Твои монеты',fmt(liveCoins()),'Монеты приносит твой питомец, пока ферма работает. Их можно обменять на NFT. В Telegram Stars монеты не обмениваются.',[['Доход в сутки','+'+sp(S.rate*24)],['Ферма',S.farming?'работает':'остановлена']],{t:'Обмен на NFT',f:mShop})}
+function mBalance(){openM('Твои монеты',fmt(liveCoins()),'Монеты приносит твой питомец, пока ферма работает. Их можно обменять на NFT. В Telegram Stars монеты не обмениваются.',[['Доход в сутки','+'+sp(S.rate*24)],['Ферма',S.farming?'работает':'остановлена']],{t:'Обмен на NFT',f:()=>mShop(false)})}
 function mIncome(){openM('Доход','+'+dec(S.rate)+' в час',S.animal_name+' приносит монеты круглые сутки, пока ты раз в день заходишь и нажимаешь ФАРМ. Пропустил день, ферма остановится до следующего ФАРМ. Чтобы получать больше, заведи питомца покрупнее.',[['Питомцы','+'+dec(S.rate)+' в час'],['В сутки','+'+sp(S.rate*24)],['Ферма',S.farming?'работает':'остановлена']],{t:'Питомцы',f:()=>goTab('pets')})}
 function mFriends(){openM('Друзья',S.friends.length,'Твой друг приходит в бота и нажимает ФАРМ: ты получаешь <b>+'+S.ref_bonus+' монет сегодня</b>. Если он приходит завтра и нажимает ФАРМ, ты снова получаешь <b>+'+S.ref_bonus+' монет</b>, и так далее. Не нажал ФАРМ за день, за этот день монет нет. Учитываются до '+S.ref_cap+' друзей в день. Зелёная галочка: друг сегодня нажал ФАРМ. Красный крестик: ещё нет, нажми на друга и напомни ему.',[['Нажали ФАРМ сегодня',S.friends_today],['Принесли сегодня','+'+sp(S.ref_today)+' монет'],['Всего друзей',S.friends.length]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Нажимай ФАРМ каждый день, и ферма не остановится. Серия показывает, сколько дней подряд ты это делаешь. Пропустил день, серия начнётся заново.',[['Серия дней',S.streak],['Сегодня',S.claimed_today?'ФАРМ нажат':'ещё нет']],S.claimed_today?INVB:null)}
@@ -644,16 +644,17 @@ async function buy(k){
     tg.openInvoice(link,async st=>{if(st==='paid'){closeM();setS(await api('me'));renderAll();toast('Питомец заселился на ферму');try{tg.HapticFeedback.notificationOccurred('success')}catch(e){}}});
   }catch(e){toast('Не удалось создать счёт')}
 }
-async function mShop(){
+async function mShop(list){
   let d=null;try{d=await api('shop')}catch(e){toast('Не удалось загрузить магазин');return}
   SHOP=d.items;
   $('sh-t').textContent='Обмен монет на NFT';
   const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
   const pr=d.items.length?Math.min(...d.items.map(i=>i.price)):0;
   $('sh-b').innerHTML='<p>Накопи '+(pr?sp(pr)+' '+coinsW(pr):'монеты')+' и нажми «Обменять»: тебе выпадет случайный NFT. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
-   +(d.items.length?'<button class="go" id="sh-ex">Обменять за '+sp(pr)+'</button>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+   +(d.items.length?'<button class="go" id="sh-ex">Обменять за '+sp(pr)+'</button>'+(list?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':''):'<p>Все NFT разобраны. Скоро появятся новые.</p>')
    +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
+  document.querySelectorAll('#sh-b .rimg').forEach(im=>im.onclick=()=>{const u=im.dataset.u;if(u)tg?tg.openTelegramLink(u):window.open(u,'_blank')});
   const ex=$('sh-ex');if(ex)ex.onclick=()=>{if(S.coins<pr){toast('Недостаточно монет: нужно '+sp(pr)+', у тебя '+sp(Math.floor(S.coins)));try{tg.HapticFeedback.notificationOccurred('error')}catch(e){}return}buyReward()};
     $('sheet').classList.add('on');
 }
@@ -713,7 +714,7 @@ function maybeOb(){let seen=false;try{seen=localStorage.getItem('fs_ob4')==='1'}
 $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
-$('nftban').onclick=()=>S&&mShop();
+$('nftban').onclick=()=>S&&mShop(true);
 $('scene').onclick=()=>S&&mPet(shownKey());
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();

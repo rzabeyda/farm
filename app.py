@@ -58,6 +58,7 @@ def init_db():
           amount INTEGER NOT NULL, created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id));
+        CREATE TABLE IF NOT EXISTS pending_grants(username TEXT PRIMARY KEY, pet TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS ref_credit(day TEXT NOT NULL, inviter INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, inviter));
         CREATE TABLE IF NOT EXISTS rewards(
           id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, descr TEXT NOT NULL DEFAULT '',
@@ -137,14 +138,38 @@ def yesterday():
     return datetime.fromtimestamp(time.time() - 86400, timezone.utc).strftime("%Y-%m-%d")
 
 
+def give_pet(c, uid, key):
+    """Выдать питомца бесплатно (админская выдача). Доход до выдачи считается по старой ставке."""
+    farm.settle(c, uid)
+    row = c.execute("SELECT pets FROM users WHERE id=?", (uid,)).fetchone()
+    try:
+        d = json.loads(row["pets"] or "{}") if row else {}
+    except Exception:
+        d = {}
+    d[key] = int(d.get(key, 0)) + 1
+    c.execute("UPDATE users SET pets=? WHERE id=?", (json.dumps(d), uid))
+
+
+def apply_grants(c, uid, username):
+    """Если админ заранее выдал питомца по @username, а игрок пришёл только сейчас, выдаём при первом входе."""
+    if not username:
+        return
+    g = c.execute("SELECT pet FROM pending_grants WHERE username=?", (username.lower(),)).fetchone()
+    if g:
+        c.execute("DELETE FROM pending_grants WHERE username=?", (username.lower(),))
+        give_pet(c, uid, g["pet"])
+
+
 def ensure_user(c, uid, username, first_name, ref=None):
     if c.execute("SELECT 1 FROM users WHERE id=?", (uid,)).fetchone():
         c.execute("UPDATE users SET username=?, first_name=? WHERE id=?", (username, first_name, uid))
+        apply_grants(c, uid, username)
         return False
     if ref == uid or not c.execute("SELECT 1 FROM users WHERE id=?", (ref,)).fetchone():
         ref = None
     c.execute("INSERT INTO users(id,username,first_name,referrer_id,created) VALUES(?,?,?,?,?)",
               (uid, username, first_name, ref, int(time.time())))
+    apply_grants(c, uid, username)
     return True
 
 
@@ -153,17 +178,18 @@ def touch(c, uid):
 
 
 async def notify_new(u):
-    """Админу: «Новый игрок @username», а если его позвал друг, то и кто именно."""
+    """Админу коротко: «Новый юзер @username», а если его позвал друг: «@друг привёл @username»."""
     if not ADMIN_ID or u["id"] == ADMIN_ID:
         return
     who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
-    text = f"Новый игрок {who}"
     with closing(db()) as c:
         r = c.execute("SELECT r.id,r.username,r.first_name FROM users n JOIN users r ON r.id=n.referrer_id WHERE n.id=?",
                       (u["id"],)).fetchone()
     if r:
         inviter = f"@{r['username']}" if r["username"] else (f"{r['first_name']} (нет username)" if r["first_name"] else f"id {r['id']}")
-        text += f"\nПригласил: {inviter}"
+        text = f"{inviter} привёл {who}"
+    else:
+        text = f"Новый юзер {who}"
     try:
         await bot.send_message(ADMIN_ID, text)
     except Exception as e:
@@ -643,6 +669,32 @@ async def cmd_rewards(m: Message):
     text = "Награды:\n\n" + ("\n".join(f"#{r['id']} «{r['title']}» {r['price']} монет, осталось {r['stock']}" +
                                        ("" if r["active"] else " (снята)") for r in rows) or "Пока нет. /addreward")
     await m.answer(text + "\n\nСнять награду: /delreward НОМЕР")
+
+
+PET_ALIAS = {"utya": "gold", "gold": "gold", "bunny": "platinum", "platinum": "platinum",
+             "cat": "diamond", "diamond": "diamond", "pepe": "obsidian", "obsidian": "obsidian"}
+
+
+@dp.message(Command("grant"))
+async def cmd_grant(m: Message, command: CommandObject):
+    """/grant @username cat — подарить питомца (utya, bunny, cat, pepe). Если игрока ещё нет, выдастся при первом входе."""
+    if not admin_only(m.from_user.id):
+        return
+    a = (command.args or "").split()
+    key = PET_ALIAS.get(a[1].lower()) if len(a) == 2 else None
+    if not key:
+        await m.answer("Использование: /grant @username utya|bunny|cat|pepe")
+        return
+    name = a[0].lstrip("@").lower()
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT id FROM users WHERE lower(username)=?", (name,)).fetchone()
+        if row:
+            give_pet(c, row["id"], key)
+        else:
+            c.execute("INSERT OR REPLACE INTO pending_grants(username,pet) VALUES(?,?)", (name, key))
+        c.commit()
+    await m.answer(f"@{name}: {farm.TIERS[key]['name']} " + ("выдан" if row else "будет выдан при первом входе"))
 
 
 @dp.message(Command("rewardprice"))
