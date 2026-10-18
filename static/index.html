@@ -322,7 +322,7 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
 .sheet .go.low:disabled{background:rgba(255,184,0,.12);color:var(--pink);box-shadow:inset 0 0 0 1px rgba(255,184,0,.35)}
 .scene{position:relative;width:min(74vw,270px);aspect-ratio:1;margin:2px auto 8px;border-radius:34px;overflow:hidden;border:2px solid rgba(255,192,31,.55);box-shadow:0 0 44px rgba(255,184,0,.28),0 16px 40px rgba(0,0,0,.5);cursor:pointer;background:#222;flex:none}
 .scene img,.scene video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
-.scene img{animation:sway 4s ease-in-out infinite}@keyframes sway{50%{transform:scale(1.04)}}
+.scene{touch-action:pan-y;cursor:grab}.scene img{animation:sway 4s ease-in-out infinite}@keyframes sway{50%{transform:scale(1.04)}}
 .cap{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:10px}.cap b{font-size:21px;font-weight:900;letter-spacing:.3px}
 .tag{font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--dim)}
 .tag.t-gold{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}.tag.t-platinum{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}
@@ -450,7 +450,7 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
 
   <nav>
     <button class="on" data-t="home">
-      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9"/><path d="M12 13c0-3.6-2.4-5.8-6.5-5.8 0 3.8 2.4 5.8 6.5 5.8z"/><path d="M12 11c0-3.2 2.2-5.2 6.5-5.2 0 3.4-2.4 5.2-6.5 5.2z"/><path d="M7 21h10"/></svg>Фарм</button>
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9v11.5h13V9"/><path d="M9.5 20.5V14h5v6.5"/></svg>Фарм</button>
     <button data-t="pets">
       <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor"><ellipse cx="6.5" cy="10" rx="2.1" ry="2.8"/><ellipse cx="10.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="15.5" cy="5.6" rx="2.1" ry="2.8"/><ellipse cx="19.2" cy="10" rx="2.1" ry="2.8"/><path d="M12.8 11.4c-2.6 0-5.4 3-5.4 5.7 0 1.8 1.4 2.9 3.1 2.9 1 0 1.5-.4 2.3-.4s1.3.4 2.3.4c1.7 0 3.1-1.1 3.1-2.9 0-2.7-2.8-5.7-5.4-5.7z"/></svg>Питомцы</button>
     <button data-t="profile">
@@ -715,7 +715,18 @@ $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('nftban').onclick=()=>S&&mShop(true);
-$('scene').onclick=()=>S&&mPet(shownKey());
+let swX=null,swDone=false;
+function swipePet(dir){
+  const keys=S.pets.map(p=>p.key),n=keys.length;if(n<2)return;
+  const j=(keys.indexOf(shownKey())+dir+n)%n;
+  try{localStorage.setItem('fs_show',keys[j])}catch(e){}
+  renderHome();try{tg.HapticFeedback.selectionChanged()}catch(e){}
+  try{$('sceneImg').animate([{transform:'translateX('+(dir>0?44:-44)+'px)',opacity:.15},{transform:'none',opacity:1}],{duration:240,easing:'ease-out'})}catch(e){}
+}
+$('scene').addEventListener('pointerdown',e=>{swX=e.clientX;swDone=false});
+$('scene').addEventListener('pointerup',e=>{if(swX===null||!S)return;const dx=e.clientX-swX;swX=null;if(Math.abs(dx)>35){swDone=true;swipePet(dx<0?1:-1)}});
+$('scene').addEventListener('pointercancel',()=>{swX=null});
+$('scene').onclick=()=>{if(swDone){swDone=false;return}S&&mPet(shownKey())};
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();
 $('m-rate').onclick=()=>S&&mIncome();

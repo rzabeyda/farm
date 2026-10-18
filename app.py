@@ -1,4 +1,4 @@
-import asyncio, glob, hashlib, hmac, json, os, random, sqlite3, time
+import asyncio, glob, hashlib, hmac, json, os, random, re, sqlite3, time
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
@@ -29,7 +29,10 @@ BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR_UTC", 3))
 BACKUP_DIR = os.path.join(HERE, "backups")
 WELCOME_FILE_ID = None
 NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "30846", "41869", "132494",
-           "129754", "130195", "175066", "88462", "30452", "61032", "202183", "87790", "46133", "70214", "107748", "78965"]
+           "129754", "130195", "175066", "88462", "30452", "61032", "202183", "87790", "46133", "70214", "107748", "78965",
+           "202928", "20370", "108354"]
+# NFT других коллекций: "Коллекция-номер" как в ссылке t.me/nft/..., картинка static/nft/коллекция-номер.jpg
+NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493", "SnoopDogg-347559", "LibertyFigure-232065", "LibertyFigure-255648", "LibertyFigure-101787", "LibertyFigure-237012", "LibertyFigure-189626", "LibertyFigure-87941", "LibertyFigure-68725"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
 
 bot = Bot(BOT_TOKEN)
@@ -120,12 +123,14 @@ def init_db():
             c.execute("INSERT INTO meta(k,v) VALUES('pets5','1')")
         # NFT для обмена: каждая ссылка добавляется один раз. Повторы в списке, а также NFT, которые уже есть в базе
         # (проданные или снятые тоже), заново не добавляются.
-        for nid in dict.fromkeys(NFT_IDS):
-            url = f"https://t.me/nft/PoolFloat-{nid}"
+        for name in dict.fromkeys([f"PoolFloat-{n}" for n in NFT_IDS] + NFT_OTHER):
+            slug, nid = name.rsplit("-", 1)
+            url = f"https://t.me/nft/{name}"
             if not c.execute("SELECT 1 FROM rewards WHERE url=?", (url,)).fetchone():
+                title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", slug) + f" #{nid}"
+                img = f"static/nft/{nid}.jpg" if slug == "PoolFloat" else f"static/nft/{slug.lower()}-{nid}.jpg"
                 c.execute("INSERT INTO rewards(title,descr,price,stock,created,img,url) VALUES(?,?,?,?,?,?,?)",
-                          (f"Pool Float #{nid}", "Коллекционный NFT, один экземпляр", NFT_PRICE, 1, int(time.time()),
-                           f"static/nft/{nid}.jpg", url))
+                          (title, "Коллекционный NFT, один экземпляр", NFT_PRICE, 1, int(time.time()), img, url))
         c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('nft_seed','1')")
         c.commit()
 
@@ -434,7 +439,7 @@ def api_shop(x_init_data: str = Header()):
     with closing(db()) as c:
         items = [{"id": r["id"], "title": r["title"], "descr": r["descr"], "price": r["price"], "stock": r["stock"],
                   "img": r["img"], "url": r["url"]}
-                 for r in c.execute("SELECT id,title,descr,price,stock,img,url FROM rewards WHERE active=1 AND stock>0 ORDER BY id")]
+                 for r in c.execute("SELECT id,title,descr,price,stock,img,url FROM rewards WHERE active=1 AND stock>0 ORDER BY (id * 2654435761) % 4294967296")]
         me = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
         mine = [{"title": r["title"], "status": r["status"]}
                 for r in c.execute("SELECT title,status FROM reward_orders WHERE user_id=? ORDER BY id DESC LIMIT 20", (u["id"],))]
