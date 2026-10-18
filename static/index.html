@@ -650,13 +650,12 @@ async function mShop(){
   $('sh-t').textContent='Обмен монет на NFT';
   const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
   const pr=d.items.length?Math.min(...d.items.map(i=>i.price)):0;
-  $('sh-b').innerHTML='<p>Накопи '+(pr?sp(pr)+' '+coinsW(pr):'монеты')+' и нажми «Обменять»: тебе выпадет случайный NFT из списка. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
-   +(d.items.length?'<button class="go" id="sh-ex">Обменять за '+sp(pr)+'</button><div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+  $('sh-b').innerHTML='<p>Накопи '+(pr?sp(pr)+' '+coinsW(pr):'монеты')+' и нажми «Обменять»: тебе выпадет случайный NFT. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
+   +(d.items.length?'<button class="go" id="sh-ex">Обменять за '+sp(pr)+'</button>':'<p>Все NFT разобраны. Скоро появятся новые.</p>')
    +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
   const ex=$('sh-ex');if(ex)ex.onclick=()=>{if(S.coins<pr){toast('Недостаточно монет: нужно '+sp(pr)+', у тебя '+sp(Math.floor(S.coins)));try{tg.HapticFeedback.notificationOccurred('error')}catch(e){}return}buyReward()};
-  document.querySelectorAll('#sh-b .rimg').forEach(im=>im.onclick=()=>{const u=im.dataset.u;if(u)tg?tg.openTelegramLink(u):window.open(u,'_blank')});
-  $('sheet').classList.add('on');
+    $('sheet').classList.add('on');
 }
 async function buyReward(){
   try{
