@@ -289,6 +289,12 @@ nav button:active{transform:scale(.93)}
 .upg .buy{flex:none;border:0;border-radius:13px;padding:10px 12px;font-weight:800;font-size:13.5px;color:var(--on);background:var(--grad);display:flex;align-items:center;gap:5px}.upg .buy img{width:15px;height:15px}
 .upg .buy:disabled{background:rgba(255,255,255,.08);color:var(--dim)}.upg .buy:disabled img{filter:grayscale(1) opacity(.5)}
 nav button{font-size:11px}
+.tier.pet{height:106px;min-height:106px;align-items:center;gap:12px;padding:0 14px 0 12px;box-sizing:border-box}
+.tier.pet .pimg{width:80px;height:80px}
+.tier.pet .pt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.tier.pet .pt b{font-size:19px;line-height:1.15;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tier.pet .pt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.tier.pet .buy{flex:none;min-width:82px;justify-content:center}
 .tl{max-height:46vh;overflow-y:auto;scrollbar-width:none}.tl::-webkit-scrollbar{display:none}
 .tr{display:flex;align-items:center;gap:10px;padding:9px 8px;border-top:1px solid var(--line);font-size:14px;font-weight:600;border-radius:10px}.tr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tr b{color:var(--pink)}
 .tr.me{background:rgba(255,184,0,.1);border-top-color:transparent;box-shadow:inset 0 0 0 1px rgba(255,184,0,.4)}
@@ -557,8 +563,8 @@ function renderPets(){
     const cls=free?'t-novice':SCOL[t.key];
     return '<div class="tier pet '+cls+(own?' cur':'')+'" data-k="'+t.key+'"><img class="pimg" src="'+art(t.key)+'" alt="">'
       +'<div class="pt"><b>'+escH(t.name)+'</b><small class="pl">'+(free?'Новичок':t.tier)+'</small>'
-      +'<small>Приносит '+t.res+': '+t.per_h+' в час, по '+t.price+' '+coinsW(t.price)+'</small>'
-      +'<small class="hl">'+COIN+' '+sp(t.rate)+' '+coinsW(t.rate)+' в час · ФАРМ +'+sp(t.daily)+'</small></div>'
+      +'<small class="hl">'+COIN+' +'+sp(t.rate)+' '+coinsW(t.rate)+' в час</small>'
+      +'<small>ФАРМ: +'+sp(t.daily)+' '+coinsW(t.daily)+' в день</small></div>'
       +'<button class="buy" data-k="'+t.key+'"'+(own||free||low?' disabled':'')+'>'+(own?'Твой':free?'База':low?'Ниже':'<img src="static/star.png" alt="">'+t.pay)+'</button></div>'}).join('');
   document.querySelectorAll('#pet-list .buy:not(:disabled)').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(b.dataset.k)});
   document.querySelectorAll('#pet-list .tier.pet').forEach(r=>r.onclick=e=>{if(!e.target.closest('.buy'))mPet(r.dataset.k)});
@@ -576,7 +582,7 @@ function renderProfile(){
 function renderAll(){renderHome();renderPets();renderProfile()}
 /* ---------- окна ---------- */
 function mBalance(){openM('Твои монеты',fmt(liveCoins()),'Монеты приносит питомец и награда за ФАРМ. Их можно обменять на NFT. В Telegram Stars монеты не обмениваются.',[['Доход питомца','+'+dec(S.rate)+' в час'],['Награда за ФАРМ','+'+sp(S.daily_reward)],['Серия дней',S.streak]],{t:'Обмен на NFT',f:mShop},{t:'Питомцы',f:()=>goTab('pets')},{t:'Рейтинг сезона',f:mRating})}
-function mIncome(){openM('Доход питомца','+'+dec(S.rate)+' в час',S.animal_name+' приносит '+S.res+', и они сразу превращаются в монеты. Монеты копятся, пока тебя нет, до '+S.cap_h+' часов, и начисляются, когда ты заходишь. Чтобы получать больше, заведи питомца покрупнее.',[['Копится без захода','до '+S.cap_h+' ч'],['За сутки','до '+sp(S.rate*24)]],{t:'Питомцы',f:()=>goTab('pets')})}
+function mIncome(){openM('Доход питомца','+'+dec(S.rate)+' в час',S.animal_name+' приносит монеты каждый час, даже когда тебя нет. Они копятся до '+S.cap_h+' часов и начисляются, когда ты заходишь. Чтобы получать больше, заведи питомца покрупнее.',[['Копится без захода','до '+S.cap_h+' ч'],['За сутки','до '+sp(S.rate*24)]],{t:'Питомцы',f:()=>goTab('pets')})}
 function mFriends(){openM('Друзья',S.friends.length,'Когда друг в первый раз нажмёт ФАРМ, ты получишь <b>+'+sp(S.ref_bonus)+' монет</b>, а он стартовые <b>+'+sp(S.ref_bonus_friend)+'</b>. В списке зелёная галочка у тех, кто нажал ФАРМ сегодня, красный крестик у остальных.',[['Нажали сегодня',S.friends_today],['Всего друзей',S.friends.length]],INVB)}
 function mStreak(){openM('Стрик',S.streak+' '+plural(S.streak,'день','дня','дней'),'Нажимай ФАРМ каждый день. С каждым днём серии награда растёт на 5% (до 10 дней). Пропустил день, серия начнётся заново.',[['Награда за следующий ФАРМ','+'+sp(S.daily_reward)],['Сегодня',S.claimed_today?'ФАРМ нажат':'ещё нет']],S.claimed_today?INVB:null)}
 function mTomorrow(){openM('Приходи завтра',leftTxt(),'ФАРМ уже нажат сегодня. Новая награда будет после 00:00 по UTC (03:00 по Москве). Питомец тем временем приносит монеты сам.',[['Серия дней',S.streak],['Завтра','+'+sp(S.daily_reward)]],{t:'Обмен на NFT',f:mShop},INVB)}
@@ -586,10 +592,9 @@ function mPet(k){
   $('sh-t').textContent=t.name;
   $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
    +'<div class="r"><span>Уровень</span><b>'+(free?'Новичок':t.tier)+'</b></div>'
-   +'<div class="r"><span>Приносит</span><b>'+t.res+', '+t.per_h+' в час</b></div>'
-   +'<div class="r"><span>Цена за штуку</span><b>'+t.price+' '+coinsW(t.price)+'</b></div>'
-   +'<div class="r"><span>Доход</span><b>'+sp(t.rate)+' монет в час</b></div>'
-   +'<div class="r"><span>Награда за ФАРМ</span><b>+'+sp(t.daily)+'</b></div>'
+   +'<div class="r"><span>Доход</span><b>+'+sp(t.rate)+' '+coinsW(t.rate)+' в час</b></div>'
+   +'<div class="r"><span>Награда за ФАРМ</span><b>+'+sp(t.daily)+' '+coinsW(t.daily)+'</b></div>'
+   +'<div class="r"><span>Копится без захода</span><b>до '+S.cap_h+' ч</b></div>'
    +(own?'<button class="go low" disabled>Это твой питомец</button>':(free||low)?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">Завести за '+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
@@ -639,7 +644,7 @@ function mInfo(){
   $('sh-t').textContent='Как играть';
   $('sh-b').innerHTML='<div class="tl">'
    +'<div class="inf"><h4>1. ФАРМ</h4><p>Раз в день нажимай <b>ФАРМ</b> и получай монеты. Новая награда доступна после 00:00 по UTC (03:00 по Москве). С каждым днём серии награда растёт.</p></div>'
-   +'<div class="inf"><h4>2. Питомец работает за тебя</h4><p>Фермер, а потом Utya, Bunny, Scared Cat и Pepe каждый час приносят ресурсы, которые сразу превращаются в монеты. Монеты копятся до 8 часов, даже когда тебя нет. Питомцы заводятся во вкладке «Питомцы» за Telegram Stars.</p></div>'
+   +'<div class="inf"><h4>2. Питомец работает за тебя</h4><p>Фермер, а потом Utya, Bunny, Scared Cat и Pepe каждый час приносят монеты. Они копятся до 8 часов, даже когда тебя нет. Питомцы заводятся во вкладке «Питомцы» за Telegram Stars.</p></div>'
    +'<div class="inf"><h4>3. Обмен монет на NFT</h4><p>Копи монеты и меняй их на NFT. Наборы показаны в баннере на главной, а обмен открывается по нажатию на него или на баланс монет. У каждого NFT один экземпляр, выдаёт администратор вручную.</p></div>'
    +'<div class="inf"><h4>4. Друзья</h4><p>Когда друг впервые нажмёт ФАРМ, ты получишь <b>+'+sp(S?S.ref_bonus:200)+' монет</b>.</p></div>'
    +'<div class="inf"><h4>5. Рейтинг и призы</h4><p>Лучшие игроки сезона получают призы в <b>Telegram Stars</b> из призового фонда. Монеты в Stars не обмениваются, призы не гарантируются, условия объявляет администратор.</p></div>'
