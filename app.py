@@ -150,11 +150,19 @@ def touch(c, uid):
 
 
 async def notify_new(u):
+    """Админу: «Новый игрок @username», а если его позвал друг, то и кто именно."""
     if not ADMIN_ID or u["id"] == ADMIN_ID:
         return
     who = f"@{u['username']}" if u.get("username") else f"{u.get('first_name') or ''} (нет username)"
+    text = f"Новый игрок {who}"
+    with closing(db()) as c:
+        r = c.execute("SELECT r.id,r.username,r.first_name FROM users n JOIN users r ON r.id=n.referrer_id WHERE n.id=?",
+                      (u["id"],)).fetchone()
+    if r:
+        inviter = f"@{r['username']}" if r["username"] else (f"{r['first_name']} (нет username)" if r["first_name"] else f"id {r['id']}")
+        text += f"\nПригласил: {inviter}"
     try:
-        await bot.send_message(ADMIN_ID, f"Новый юзер {who}")
+        await bot.send_message(ADMIN_ID, text)
     except Exception as e:
         print("notify new:", e)
 
