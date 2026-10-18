@@ -404,7 +404,6 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
       <div class="scene" id="scene"><img id="sceneImg" src="static/art/farmer.svg" alt="" draggable="false"></div>
       <div class="cap"><b id="animalName">Фермер</b><span id="tierTag" class="tag">Новичок</span></div>
       <button class="wd farmbtn" id="farm"><span id="farmTxt">ФАРМ</span><small id="farmSub"></small></button>
-      <button class="rateline" id="rateline"><img src="static/coin.png" alt="" draggable="false"><span id="rateTxt"></span></button>
     </section>
 
     <section class="tab" id="pets">
@@ -550,7 +549,6 @@ function renderHome(){
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Приходи завтра':'ФАРМ';
   $('farmSub').textContent=done?('через '+leftTxt()):('+'+sp(S.daily_reward)+' '+coinsW(S.daily_reward));
-  $('rateTxt').textContent='+'+dec(S.rate)+' '+coinsW(S.rate)+' в час, питомец работает сам';
   paintLive();
 }
 function renderPets(){
@@ -676,7 +674,6 @@ $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('nftban').onclick=()=>S&&mShop();
 $('scene').onclick=()=>S&&mPet(S.animal);
-$('rateline').onclick=()=>S&&mIncome();
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();
 $('m-rate').onclick=()=>S&&mIncome();
