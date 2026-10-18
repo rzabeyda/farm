@@ -296,6 +296,10 @@ i.r1,i.r2,i.r3,i.r0{display:grid;place-items:center;width:24px;height:24px;borde
 i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{background:linear-gradient(135deg,#f4f8ff,#a9b6cb);color:#1c2433}i.r3{background:linear-gradient(135deg,#f0b27a,#a8641f);color:#2b1400}
 
 /* ===== ферма ===== */
+.petbig{width:min(76vw,300px);aspect-ratio:1;margin:2px auto 12px;border-radius:32px;overflow:hidden;border:2px solid rgba(255,192,31,.55);box-shadow:0 0 44px rgba(255,184,0,.28),0 14px 36px rgba(0,0,0,.5)}
+.petbig img{display:block;width:100%;height:100%;object-fit:cover}
+.tier.pet{cursor:pointer}
+.sheet .go.low:disabled{background:rgba(255,184,0,.12);color:var(--pink);box-shadow:inset 0 0 0 1px rgba(255,184,0,.35)}
 .scene{position:relative;width:min(74vw,270px);aspect-ratio:1;margin:2px auto 8px;border-radius:34px;overflow:hidden;border:2px solid rgba(255,192,31,.55);box-shadow:0 0 44px rgba(255,184,0,.28),0 16px 40px rgba(0,0,0,.5);cursor:pointer;background:#222;flex:none}
 .scene img,.scene video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .scene img{animation:sway 4s ease-in-out infinite}@keyframes sway{50%{transform:scale(1.04)}}
@@ -338,7 +342,7 @@ i.r1{background:linear-gradient(135deg,#ffd84d,#ff9f0a);color:#2b1a00}i.r2{backg
   <main>
     <section class="tab on" id="home">
       <div class="scene" id="scene"><img id="sceneImg" src="/static/art/farmer.svg" alt="" draggable="false"></div>
-      <div class="cap"><b id="animalName">Нищий фермер</b><span id="tierTag" class="tag">Новичок</span></div>
+      <div class="cap"><b id="animalName">Фермер</b><span id="tierTag" class="tag">Новичок</span></div>
       <button class="wd farmbtn" id="farm"><span id="farmTxt">ФАРМ</span><small id="farmSub"></small></button>
       <div class="wcard" id="bcard">
         <div class="lbl"><span id="b-name">Склад</span><b id="b-txt">0 / 0</b></div>
@@ -536,11 +540,26 @@ function mPets(){
   $('sh-b').innerHTML='<p>Питомец поселяется на твоей ферме навсегда: больше ресурсов в час, дороже продажа и больше награда за ФАРМ. Оплата в Telegram Stars. Более высокий питомец заменяет предыдущего, платится только разница.</p><div class="tl">'
    +S.tiers.map(t=>{const own=S.animal===t.key,free=t.stars===0,low=!own&&!free&&t.pay<=0;
      const cls=free?'t-novice':SCOL[t.key];
-     return '<div class="tier pet '+cls+(own?' cur':'')+'"><img class="pimg" src="'+art(t.key)+'" alt=""><div class="pt"><b>'+escH(t.name)+'</b><small>'+(free?'Новичок':t.tier)+' · '+t.res+' '+t.per_h+'/ч · ФАРМ +'+sp(t.daily)+'</small></div>'
+     return '<div class="tier pet '+cls+(own?' cur':'')+'" data-k="'+t.key+'"><img class="pimg" src="'+art(t.key)+'" alt=""><div class="pt"><b>'+escH(t.name)+'</b><small>'+(free?'Новичок':t.tier)+' · '+t.res+' '+t.per_h+'/ч · ФАРМ +'+sp(t.daily)+'</small></div>'
      +'<button class="buy" data-k="'+t.key+'"'+(own||free||low?' disabled':'')+'>'+(own?'Твой':free?'База':low?'Ниже':'<img src="/static/star.png" alt="">'+t.pay)+'</button></div>'}).join('')
    +'</div><button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
-  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=()=>buy(b.dataset.k));
+  document.querySelectorAll('.tier .buy:not(:disabled)').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(b.dataset.k)});
+  document.querySelectorAll('.tier.pet').forEach(r=>r.onclick=e=>{if(!e.target.closest('.buy'))mPet(r.dataset.k)});
+  $('sheet').classList.add('on');
+}
+function mPet(k){
+  const t=S.tiers.find(x=>x.key===k);if(!t)return;
+  const own=S.animal===k,free=t.stars===0,low=!own&&!free&&t.pay<=0;
+  $('sh-t').textContent=t.name;
+  $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
+   +'<div class="r"><span>Уровень</span><b>'+(free?'Новичок':t.tier)+'</b></div>'
+   +'<div class="r"><span>Приносит</span><b>'+t.res+', '+t.per_h+' в час</b></div>'
+   +'<div class="r"><span>Цена продажи</span><b>'+t.price+' за шт.</b></div>'
+   +'<div class="r"><span>Награда за ФАРМ</span><b>+'+sp(t.daily)+'</b></div>'
+   +(own?'<button class="go low" disabled>Это твой питомец</button>':(free||low)?'':'<button class="go" id="sh-go"><img src="/static/star.png" alt="" style="width:18px;height:18px">Завести за '+t.pay+'</button>')
+   +'<button class="go ghost" id="sh-back">К списку питомцев</button>';
+  $('sh-back').onclick=mPets;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
   $('sheet').classList.add('on');
 }
 async function buy(k){
@@ -600,7 +619,7 @@ $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('bcard').onclick=e=>{if(S&&!e.target.closest('#sell'))mBarn()};
-$('scene').onclick=()=>S&&mPets();
+$('scene').onclick=()=>S&&mPet(S.animal);
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();
 $('stcard').onclick=()=>S&&mPets();

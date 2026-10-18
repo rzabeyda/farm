@@ -177,7 +177,7 @@ def state(c, uid, now=None):
     for k, d in UPGRADES.items():
         lvl = st["levels"][k]
         ups.append({"key": k, "name": d["name"], "desc": d["desc"], "level": lvl, "max": d["max"],
-                    "cost": farm.upgrade_cost(k, lvl) if lvl < d["max"] else None})
+                    "cost": farm.upgrade_cost(k, lvl, st["tier"]) if lvl < d["max"] else None})
     tiers = []
     for k, v in farm.TIERS.items():
         tiers.append({"key": k, "name": v["name"], "tier": v["tier"], "stars": v["stars"], "res": v["res"],
@@ -400,7 +400,7 @@ def api_upgrade(key: str, x_init_data: str = Header()):
         if lv[key] >= UPGRADES[key]["max"]:
             c.rollback()
             raise HTTPException(400, "max")
-        cost = farm.upgrade_cost(key, lv[key])
+        cost = farm.upgrade_cost(key, lv[key], farm.tier_of(row))
         if row["points"] < cost:
             c.rollback()
             raise HTTPException(400, "coins")

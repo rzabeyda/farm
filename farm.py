@@ -16,7 +16,7 @@ REF_BONUS_FRIEND = 100
 # Питомцы. key -> (цена в Telegram Stars, название питомца, уровень, ресурс, производство в час, цена продажи 1 шт., награда за ФАРМ)
 # farmer - бесплатный стартовый уровень.
 TIERS = {
-    "farmer":   dict(stars=0,    name="Нищий фермер", tier="Новичок",  res="картошка", per_h=2,  price=1, daily=20),
+    "farmer":   dict(stars=0,    name="Фермер", tier="Новичок",  res="картошка", per_h=2,  price=1, daily=20),
     "gold":     dict(stars=25,   name="Уточка",       tier="Gold",     res="перья",    per_h=5,  price=2, daily=30),
     "platinum": dict(stars=100,  name="Зайка",        tier="Platinum", res="морковь",  per_h=12, price=3, daily=100),
     "diamond":  dict(stars=500,  name="Кошка",        tier="Diamond",  res="мыши",     per_h=30, price=5, daily=500),
@@ -24,17 +24,19 @@ TIERS = {
 }
 PAID = [k for k in TIERS if k != "farmer"]
 
-# Улучшения фермы за монеты
+# Улучшения фермы за монеты. hours - цена 1-го уровня в часах дохода питомца
 UPGRADES = {
-    "barn":   dict(name="Амбар", desc="+2 часа хранения ресурсов", base=100, growth=1.6, max=10, step=2),
-    "feed":   dict(name="Кормушка", desc="+10% к производству", base=150, growth=1.55, max=20, step=0.10),
-    "market": dict(name="Рынок", desc="+5% к цене продажи", base=200, growth=1.55, max=20, step=0.05),
+    "barn":   dict(name="Амбар", desc="+2 часа хранения ресурсов", hours=12, growth=1.6, max=10, step=2),
+    "feed":   dict(name="Кормушка", desc="+10% к производству", hours=20, growth=1.55, max=20, step=0.10),
+    "market": dict(name="Рынок", desc="+5% к цене продажи", hours=24, growth=1.55, max=20, step=0.05),
 }
 
 
-def upgrade_cost(key, level):
+def upgrade_cost(key, level, tier="farmer"):
+    """Цена улучшения = N часов дохода текущего питомца: окупаемость примерно одинакова на любом уровне."""
     u = UPGRADES[key]
-    return int(u["base"] * (u["growth"] ** level))
+    t = TIERS[tier]
+    return max(1, int(u["hours"] * t["per_h"] * t["price"] * (u["growth"] ** level)))
 
 
 def tier_of(row):
