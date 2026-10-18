@@ -789,9 +789,9 @@ async def start(m: Message, command: CommandObject):
             "<b>Как играть</b>\n"
             "— Фарми раз в сутки\n"
             "— Заводи питомцев: Utya, Bunny, Scared Cat, Pepe\n"
+            "— Зови друзей и увеличивай доход\n"
             "— Копи монеты\n"
-            "— Обменивай монеты на NFT\n\n"
-            "Зови друзей: за каждого, кто пришёл и нажал ФАРМ, получаешь +100 монет.")
+            "— Обменивай монеты на NFT")
     global WELCOME_FILE_ID
     try:
         sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "welcome.png")),
