@@ -556,10 +556,16 @@ document.addEventListener('pointerdown',e=>{
 });
 /* ---------- отрисовка ---------- */
 const SCOL={gold:'t-gold',platinum:'t-platinum',diamond:'t-diamond',obsidian:'t-obsidian'};
+function shownKey(){
+  let k=null;try{k=localStorage.getItem('fs_show')}catch(e){}
+  const t=k&&S.tiers.find(x=>x.key===k);
+  return t&&(t.stars===0||t.owned>0)?k:S.animal;
+}
+function pickShown(k){try{localStorage.setItem('fs_show',k)}catch(e){}renderHome();closeM();toast('Показываю на ферме: '+S.tiers.find(x=>x.key===k).name)}
 function renderHome(){
   const done=S.claimed_today;
-  const img=$('sceneImg'),src=art(S.animal);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
-  $('animalName').textContent=S.animal_name;
+  const sk=shownKey(),img=$('sceneImg'),src=art(sk);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
+  $('animalName').textContent=S.tiers.find(x=>x.key===sk).name;
   const ow=S.pets.filter(p=>p.key!=='farmer'),oe=$('owned');
   oe.style.display=ow.length?'':'none';
   oe.innerHTML=ow.length?S.pets.map(p=>'<span class="oc"><img src="'+art(p.key)+'" alt=""><span>'+escH(p.key==='farmer'?'Фермер':(S.tiers.find(x=>x.key===p.key).short||p.name))+' ×'+p.count+'</span></span>').join(''):'';
@@ -621,9 +627,10 @@ function mPet(k){
    +(!free&&cnt>1?'<div class="r"><span>Все вместе</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
    +'<div class="r"><span>Без захода</span><b>фармится минимум 24 часа</b></div>'
    +(S.is_admin&&np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
+   +((free||cnt>0)&&shownKey()!==k?'<button class="go alt" id="sh-show">Показывать на ферме</button>':'')
    +(free?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">'+(cnt>0?'Купить ещё за ':'Завести за ')+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
+  $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);const sw=$('sh-show');if(sw)sw.onclick=()=>pickShown(k);
   $('sheet').classList.add('on');
 }
 async function buy(k){
@@ -706,7 +713,7 @@ $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('nftban').onclick=()=>S&&mShop();
-$('scene').onclick=()=>S&&mPet(S.animal);
+$('scene').onclick=()=>S&&mPet(shownKey());
 $('m-friends').onclick=()=>S&&mFriends();
 $('streak').onclick=()=>S&&mStreak();
 $('m-rate').onclick=()=>S&&mIncome();
