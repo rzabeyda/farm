@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Free Stars</title>
+<title>Ферма</title>
 <link rel="icon" href="static/star.png">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -490,7 +490,7 @@ $('sheet').onclick=e=>{if(e.target.id==='sheet')closeM()};
 function leftTxt(){const n=new Date(),m=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1))-n,h=Math.floor(m/36e5),i=Math.floor(m%36e5/6e4);return h+' ч '+i+' мин'}
 function invite(){
   if(!S)return;
-  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи в Free Stars: заведи питомца, копи монеты и обменивай их на NFT!');
+  const u='https://t.me/share/url?url='+encodeURIComponent(S.link)+'&text='+encodeURIComponent('Заходи в Ферму: заведи питомца, копи монеты и обменивай их на NFT!');
   tg?tg.openTelegramLink(u):window.open(u,'_blank');
 }
 const INVB={t:'Пригласить друга',inv:1,f:invite};
@@ -515,7 +515,7 @@ function nftShow(){
   $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' · остался 1';
   const b=$('nftban');b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');
 }
-setInterval(nftShow,1000);
+setInterval(nftShow,3000);
 async function loadShop(){try{SHOP=(await api('shop')).items;SHOP.forEach(i=>{const p=new Image();p.src=i.img});nftShow()}catch(e){}}
 /* ---------- действия ---------- */
 $('farm').addEventListener('click',async()=>{

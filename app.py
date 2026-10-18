@@ -529,7 +529,7 @@ def stats_text():
         pts = q("SELECT COALESCE(SUM(points),0) FROM users")
         buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
         st = {k: q("SELECT COUNT(*) FROM users WHERE status=?", k) for k in STATUSES}
-    return (f"Статистика Free Stars\n\n"
+    return (f"Статистика Фермы\n\n"
             f"Всего вошло в бота: {total}\n"
             f"Новых: сегодня {new_today}, вчера {new_yday}, за 7 дней {new_week}\n"
             f"Заходили в приложение: сегодня {seen_today}, вчера {seen_yday}\n"
