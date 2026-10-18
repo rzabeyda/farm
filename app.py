@@ -783,7 +783,8 @@ async def start(m: Message, command: CommandObject):
     if new:
         await notify_new({"id": u.id, "username": u.username, "first_name": u.first_name})
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
+        InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL)),
+        InlineKeyboardButton(text="Чат", url="https://t.me/peeppo_chat")]])
     text = ("<b>Привет, фермер! Добро пожаловать на ферму.</b>\n\n"
             "Нажимай <b>ФАРМ</b> раз в сутки, и ферма вместе с питомцами будет приносить монеты круглые сутки.\n\n"
             "<b>Как играть</b>\n"
