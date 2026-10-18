@@ -1,6 +1,6 @@
 import asyncio, glob, hashlib, hmac, json, os, sqlite3, time
 from contextlib import asynccontextmanager, closing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, F
@@ -77,7 +77,8 @@ def init_db():
                     "ALTER TABLE users ADD COLUMN last_tap_ts REAL",
                     "ALTER TABLE users ADD COLUMN upg TEXT NOT NULL DEFAULT '{}'",
                     "ALTER TABLE users ADD COLUMN res REAL",
-                    "ALTER TABLE users ADD COLUMN res_ts REAL"):
+                    "ALTER TABLE users ADD COLUMN res_ts REAL",
+                    "ALTER TABLE users ADD COLUMN farm_until REAL"):
             try:
                 c.execute(ddl)
             except sqlite3.OperationalError:
@@ -102,6 +103,12 @@ def init_db():
                 gain = int(r["res"]) * farm.TIERS[k]["price"]
                 c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res=0 WHERE id=?", (gain, gain, r["id"]))
             c.execute("INSERT INTO meta(k,v) VALUES('farm3_import','1')")
+        # v4: ферма работает круглые сутки, пока нажимаешь ФАРМ; для тех, кто уже нажимал, включаем до конца следующих суток
+        if not c.execute("SELECT 1 FROM meta WHERE k='farm4'").fetchone():
+            for r in c.execute("SELECT id,last_claim FROM users WHERE last_claim IS NOT NULL").fetchall():
+                d = datetime.strptime(r["last_claim"], "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=2)
+                c.execute("UPDATE users SET farm_until=? WHERE id=?", (d.timestamp(), r["id"]))
+            c.execute("INSERT INTO meta(k,v) VALUES('farm4','1')")
         # стартовый набор NFT для обмена (один раз)
         if not c.execute("SELECT 1 FROM meta WHERE k='nft_seed'").fetchone():
             for nid in NFT_IDS:
@@ -194,20 +201,20 @@ def state(c, uid, now=None):
     t, y = today(), yesterday()
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
+    until = u["farm_until"] or 0
     friends = [{"name": _name(f), "done": f["last_claim"] == t}
                for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
                                   "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1", (uid,)).fetchone()[0]
     tiers = []
     for k, v in farm.TIERS.items():
-        tiers.append({"key": k, "name": v["name"], "tier": v["tier"], "stars": v["stars"], "res": v["res"],
-                      "per_h": v["per_h"], "price": v["price"], "rate": farm.coin_rate(k), "daily": v["daily"],
+        tiers.append({"key": k, "name": v["name"], "short": v.get("short", v["name"]), "stars": v["stars"], "rate": farm.coin_rate(k),
                       "pay": status_price(c, uid, k) if k in STATUSES else 0})
     return {
         "coins": round(u["points"], 2),
-        "rate": st["rate"], "cap_h": st["cap_h"], "res": st["t"]["res"],
-        "daily_reward": farm.farm_reward(streak + 1, st["t"]["daily"]),
-        "animal": st["tier"], "animal_name": st["t"]["name"], "tier_name": st["t"]["tier"],
+        "rate": st["rate"],
+        "farm_until": until, "farming": until > now,
+        "animal": st["tier"], "animal_name": st["t"]["name"],
         "claimed_today": claimed, "streak": streak, "today": t,
         "friends": friends, "friends_today": sum(1 for f in friends if f["done"]), "refs": refs_active,
         "ref_bonus": farm.REF_BONUS_INVITER, "ref_bonus_friend": farm.REF_BONUS_FRIEND,
@@ -267,7 +274,7 @@ async def run_reminders():
         InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     sent = blocked = 0
     for u in users:
-        text = "Твоя ферма ждёт. Зайди, нажми ФАРМ и забери награду. Копи монеты и обменивай их на NFT."
+        text = "Нажми ФАРМ, чтобы ферма работала дальше. Копи монеты и обменивай их на NFT."
         if u["streak"] and u["last_claim"]:
             text += f"\nСерия {u['streak']} дн. — не потеряй её."
         text += "\nОтключить напоминания: /stop"
@@ -346,7 +353,7 @@ async def api_me(x_init_data: str = Header()):
 
 @app.post("/api/claim")
 async def api_claim(x_init_data: str = Header()):
-    """Ежедневный ФАРМ: награда монетами, раз в сутки."""
+    """ФАРМ раз в сутки: ферма работает круглые сутки до конца следующих суток (UTC)."""
     u, ref = user_from(x_init_data)
     with closing(db()) as c:
         new = ensure_user(c, u["id"], u.get("username"), u.get("first_name"), ref)
@@ -360,20 +367,18 @@ async def api_claim(x_init_data: str = Header()):
             c.rollback()
             raise HTTPException(400, "already")
         streak = row["streak"] + 1 if row["last_claim"] == yesterday() else 1
-        st = farm.stats(row)
-        reward = farm.farm_reward(streak, st["t"]["daily"])
         first = row["claim_days"] == 0
         friend_bonus = farm.REF_BONUS_FRIEND if (first and row["referrer_id"]) else 0
         c.execute("UPDATE users SET points=points+?, season_points=season_points+?, last_claim=?, streak=?, "
-                  "claim_days=claim_days+1 WHERE id=?",
-                  (reward + friend_bonus, reward + friend_bonus, t, streak, u["id"]))
+                  "claim_days=claim_days+1, farm_until=?, res_ts=? WHERE id=?",
+                  (friend_bonus, friend_bonus, t, streak, farm.farm_until_for(), time.time(), u["id"]))
         if first and row["referrer_id"]:
             c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
             c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?",
                       (farm.REF_BONUS_INVITER, farm.REF_BONUS_INVITER, row["referrer_id"]))
         c.commit()
         s = state(c, u["id"])
-        s["reward"] = reward + friend_bonus
+        s["reward"] = friend_bonus
     if new:
         await notify_new(u)
     return s
@@ -757,7 +762,7 @@ async def start(m: Message, command: CommandObject):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     text = ("Привет, фермер! Добро пожаловать на ферму.\n\n"
-            "Нажимай ФАРМ раз в день, заводи питомцев (Utya, Bunny, Scared Cat, Pepe), копи монеты и обменивай их на NFT. "
+            "Нажимай ФАРМ раз в день: ферма и питомцы (Utya, Bunny, Scared Cat, Pepe) приносят монеты круглые сутки. Копи монеты и обменивай их на NFT. "
             "Лучшие игроки сезона получают призы в Telegram Stars.")
     global WELCOME_FILE_ID
     try:

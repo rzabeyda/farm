@@ -1,24 +1,25 @@
-"""Логика фермы (v3).
+"""Логика фермы (v4).
 
-Монеты - внутриигровая валюта. Питомцы покупаются за Telegram Stars (игровые предметы) и сами приносят монеты.
+Один доход: монеты в час. Ферма работает круглые сутки, пока игрок раз в сутки заходит и нажимает ФАРМ:
+каждое нажатие ФАРМ продлевает работу фермы до конца следующих суток (UTC). Пропустил день, ферма останавливается
+до следующего ФАРМ.
+Монеты - внутриигровая валюта. Питомцы покупаются за Telegram Stars (игровые предметы).
 Монеты НЕ обмениваются на Telegram Stars: их можно потратить на ограниченные награды (NFT) в магазине.
 """
 import time
+from datetime import datetime, timedelta, timezone
 
-OFFLINE_CAP_H = 8           # пассивный доход копится не дольше 8 часов без захода
-STREAK_STEP = 0.05          # +5% к награде за ФАРМ за каждый день серии
-STREAK_MAX_DAYS = 10
 REF_BONUS_INVITER = 200     # монет, когда друг впервые нажал ФАРМ
 REF_BONUS_FRIEND = 100
 
-# Питомцы: stars - цена в Telegram Stars; res - что «приносит» (для описания), per_h - штук в час,
-# price - монет за 1 шт. (ресурсы сразу превращаются в монеты), daily - награда за ФАРМ.
+# Питомцы: stars - цена в Telegram Stars; per_h - сколько штук приносит в час, price - монет за штуку.
+# Для игрока это один показатель: монет в час (coin_rate).
 TIERS = {
-    "farmer":   dict(stars=0,    name="Фермер",  tier="Новичок",  res="картошку", per_h=2,  price=1, daily=20),
-    "gold":     dict(stars=25,   name="Utya",    tier="Gold",     res="перья",    per_h=5,  price=2, daily=30),
-    "platinum": dict(stars=100,  name="Bunny",   tier="Platinum", res="морковь",  per_h=12, price=3, daily=100),
-    "diamond":  dict(stars=500,  name="Scared Cat", tier="Diamond",  res="мышей",    per_h=30, price=5, daily=500),
-    "obsidian": dict(stars=1000, name="Pepe",    tier="Obsidian", res="кувшинки", per_h=60, price=8, daily=1500),
+    "farmer":   dict(stars=0,    name="Фермер",      per_h=2,  price=1),
+    "gold":     dict(stars=25,   name="Utya",        per_h=5,  price=2),
+    "platinum": dict(stars=100,  name="Bunny",       per_h=12, price=3),
+    "diamond":  dict(stars=500,  name="Scared Cat", short="Cat", per_h=30, price=5),
+    "obsidian": dict(stars=1000, name="Pepe",        per_h=60, price=8),
 }
 PAID = [k for k in TIERS if k != "farmer"]
 
@@ -34,22 +35,27 @@ def tier_of(row):
 
 def stats(row):
     k = tier_of(row)
-    return dict(tier=k, t=TIERS[k], rate=coin_rate(k), cap_h=OFFLINE_CAP_H)
+    return dict(tier=k, t=TIERS[k], rate=coin_rate(k))
+
+
+def farm_until_for(now=None):
+    """Конец следующих суток по UTC: ФАРМ в любой момент дня D держит ферму включённой до 00:00 дня D+2."""
+    now = now or time.time()
+    d = datetime.fromtimestamp(now, timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (d + timedelta(days=2)).timestamp()
 
 
 def settle(c, uid, now=None):
-    """Начисляет пассивный доход монетами (не больше OFFLINE_CAP_H часов). Вызывать внутри транзакции."""
+    """Начисляет монеты за время, пока ферма была включена (до farm_until). Вызывать внутри транзакции."""
     now = now or time.time()
     row = c.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     st = stats(row)
     last = row["res_ts"]
+    until = row["farm_until"] or 0
     gain = 0.0
-    if last:
-        gain = st["rate"] * min(max(0.0, now - last), OFFLINE_CAP_H * 3600) / 3600.0
+    end = min(now, until)
+    if last and end > last:
+        gain = st["rate"] * (end - last) / 3600.0
     c.execute("UPDATE users SET points=points+?, season_points=season_points+?, res_ts=? WHERE id=?",
               (gain, gain, now, uid))
     return gain
-
-
-def farm_reward(streak_after, daily):
-    return int(round(daily * (1 + STREAK_STEP * (min(streak_after, STREAK_MAX_DAYS) - 1))))
