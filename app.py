@@ -1,4 +1,4 @@
-import asyncio, glob, hashlib, hmac, json, os, sqlite3, time
+import asyncio, glob, hashlib, hmac, json, os, random, sqlite3, time
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
@@ -450,6 +450,20 @@ async def api_shop_buy(rid: int, x_init_data: str = Header()):
         except Exception as e:
             print("order notify:", e)
     return s
+
+
+@app.post("/api/shop/exchange")
+async def api_shop_exchange(x_init_data: str = Header()):
+    """Обмен монет на случайный NFT из списка (выбирает сервер, игрок выбрать не может)."""
+    u, _ = user_from(x_init_data)
+    with closing(db()) as c:
+        me = c.execute("SELECT points FROM users WHERE id=?", (u["id"],)).fetchone()
+        ids = [r["id"] for r in c.execute("SELECT id FROM rewards WHERE active=1 AND stock>0 AND price<=?",
+                                          (me["points"] if me else 0,))]
+        anyleft = c.execute("SELECT 1 FROM rewards WHERE active=1 AND stock>0").fetchone()
+    if not ids:
+        raise HTTPException(400, "coins" if anyleft else "stock")
+    return await api_shop_buy(random.choice(ids), x_init_data)
 
 
 @app.post("/api/rating")
