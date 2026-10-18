@@ -649,14 +649,22 @@ async function mShop(list){
   SHOP=d.items;
   $('sh-t').textContent='Обмен монет на NFT';
   const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
-  const prices=[...new Set(d.items.map(i=>i.price))].sort((a,b)=>a-b),pr=prices[0]||0;
-  $('sh-b').innerHTML='<p>Накопи монеты и нажми «Обменять»: тебе выпадет случайный NFT выбранной цены. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
-   +(d.items.length?prices.map((p,i)=>'<button class="go'+(i?' alt':'')+'" id="'+(i?'sh-ex'+i:'sh-ex')+'" data-p="'+p+'">Обменять за '+sp(p)+'</button>').join('')+'<div class="warn" id="sh-warn"></div>'+(list?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':''):'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+  const prices=[...new Set(d.items.map(i=>i.price))].sort((a,b)=>a-b);
+  $('sh-b').innerHTML='<p>Накопи монеты и нажми «Обменять», дальше выберешь вариант: тебе выпадет случайный NFT. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
+   +(d.items.length?'<button class="go" id="sh-ex">Обменять</button>'+(list?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':''):'<p>Все NFT разобраны. Скоро появятся новые.</p>')
    +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
   document.querySelectorAll('#sh-b .rimg').forEach(im=>im.onclick=()=>{const u=im.dataset.u;if(u)tg?tg.openTelegramLink(u):window.open(u,'_blank')});
+  const ex=$('sh-ex');if(ex)ex.onclick=()=>shopChoose(prices,list);
+  $('sheet').classList.add('on');
+}
+function shopChoose(prices,list){
+  $('sh-t').textContent='Выбери вариант';
+  $('sh-b').innerHTML='<p>За каждый вариант выпадет случайный NFT этой цены.</p>'
+   +prices.map((p,i)=>'<button class="go'+(i?' alt':'')+'" id="sh-ex'+i+'" data-p="'+p+'">Обменять за '+sp(p)+'</button>').join('')
+   +'<div class="warn" id="sh-warn"></div><button class="go ghost" id="sh-back">Назад</button>';
+  $('sh-back').onclick=()=>mShop(list);
   document.querySelectorAll('#sh-b [data-p]').forEach(ex=>ex.onclick=()=>{const p=+ex.dataset.p;if(S.coins<p){$('sh-warn').textContent='Недостаточно монет: нужно '+sp(p)+', у тебя '+sp(Math.floor(S.coins));try{tg.HapticFeedback.notificationOccurred('error')}catch(e){}return}buyReward(p)});
-    $('sheet').classList.add('on');
 }
 async function buyReward(p){
   try{
