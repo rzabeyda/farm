@@ -418,7 +418,6 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
       </button>
       <div class="scene" id="scene"><img id="sceneImg" src="static/art/farmer.svg" alt="" draggable="false"></div>
       <div class="cap"><b id="animalName">Фермер</b></div>
-      <div class="owned" id="owned" style="display:none"></div>
       <button class="wd farmbtn" id="farm"><span id="farmTxt">ФАРМ</span><small id="farmSub"></small></button>
     </section>
 
@@ -437,7 +436,7 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
         <div class="badge" id="badge">Фермер</div>
       </div>
       <div class="duo">
-        <div class="mini" id="m-rate"><small>Доход в сутки</small><b id="p-rate">+0</b></div>
+        <div class="mini" id="m-rate"><small>Доход</small><b id="p-rate">+0</b></div>
         <div class="mini" id="streak"><small>Стрик</small><b id="sk-n">0 дней</b></div>
       </div>
       <div class="duo">
@@ -572,11 +571,7 @@ function shownKey(){
 function renderHome(){
   const done=S.claimed_today;
   const sk=shownKey(),img=$('sceneImg'),src=art(sk);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
-  $('animalName').textContent=S.tiers.find(x=>x.key===sk).name;
-  const ow=S.pets.filter(p=>p.key!=='farmer'),oe=$('owned');
-  oe.style.display=ow.length?'':'none';
-  oe.innerHTML=ow.length?S.pets.map(p=>'<span class="oc'+(p.key===sk?' on':'')+'" data-k="'+p.key+'"><img src="'+art(p.key)+'" alt=""><span>'+escH(p.key==='farmer'?'Фермер':(S.tiers.find(x=>x.key===p.key).short||p.name))+' ×'+p.count+'</span></span>').join(''):'';
-  oe.querySelectorAll('.oc').forEach(e=>e.onclick=()=>{try{localStorage.setItem('fs_show',e.dataset.k)}catch(x){}try{tg.HapticFeedback.selectionChanged()}catch(x){}renderHome()});
+  {const pc=S.pets.find(p=>p.key===sk);$('animalName').textContent=S.tiers.find(x=>x.key===sk).name+(pc?' ×'+pc.count:'')}
   $('farm').classList.toggle('done',done);
   $('farmTxt').textContent=done?'Ферма работает':'ФАРМ';
   $('farmSub').textContent=done?('следующий ФАРМ через '+leftTxt()):(S.farming?'продли ферму на сутки':'запусти ферму');
@@ -656,7 +651,7 @@ async function mShop(list){
   const mine=d.mine.length?'<p style="margin:14px 0 0">Твои заказы: '+d.mine.map(o=>escH(o.title)+(o.status==='done'?' (выдано)':' (ждёт выдачи)')).join(', ')+'</p>':'';
   const pr=d.items.length?Math.min(...d.items.map(i=>i.price)):0;
   $('sh-b').innerHTML='<p>Накопи '+(pr?sp(pr)+' '+coinsW(pr):'монеты')+' и нажми «Обменять»: тебе выпадет случайный NFT. Администратор отправит его на твой @username в Telegram вручную. В Telegram Stars монеты не обмениваются.</p>'
-   +(d.items.length?'<button class="go" id="sh-ex">Обменять за '+sp(pr)+'</button><div class="warn" id="sh-warn"></div>'+(list?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':''):'<p>Все NFT разобраны. Скоро появятся новые.</p>')
+   +(d.items.length?'<button class="go" id="sh-ex">Обменять '+(d.items.some(i=>i.price>pr)?'от ':'за ')+sp(pr)+'</button><div class="warn" id="sh-warn"></div>'+(list?'<div class="tl">'+d.items.map(i=>'<div class="rw"><img class="rimg" data-u="'+escH(i.url||'')+'" src="'+escH(i.img||'static/coin.png')+'" alt=""><div class="rt"><b>'+escH(i.title)+'</b></div></div>').join('')+'</div>':''):'<p>Все NFT разобраны. Скоро появятся новые.</p>')
    +mine+'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;
   document.querySelectorAll('#sh-b .rimg').forEach(im=>im.onclick=()=>{const u=im.dataset.u;if(u)tg?tg.openTelegramLink(u):window.open(u,'_blank')});

@@ -34,6 +34,8 @@ NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "3
 # NFT других коллекций: "Коллекция-номер" как в ссылке t.me/nft/..., картинка static/nft/коллекция-номер.jpg
 NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493", "SnoopDogg-347559", "LibertyFigure-232065", "LibertyFigure-255648", "LibertyFigure-101787", "LibertyFigure-237012", "LibertyFigure-189626", "LibertyFigure-87941", "LibertyFigure-68725"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
+NFT_PRICE_HIGH = 343000                                 # цена новых подарков (NFT_PREMIUM)
+NFT_PREMIUM = set(NFT_OTHER) | {"PoolFloat-202928", "PoolFloat-20370", "PoolFloat-108354"}
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
@@ -130,7 +132,8 @@ def init_db():
                 title = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", slug) + f" #{nid}"
                 img = f"static/nft/{nid}.jpg" if slug == "PoolFloat" else f"static/nft/{slug.lower()}-{nid}.jpg"
                 c.execute("INSERT INTO rewards(title,descr,price,stock,created,img,url) VALUES(?,?,?,?,?,?,?)",
-                          (title, "Коллекционный NFT, один экземпляр", NFT_PRICE, 1, int(time.time()), img, url))
+                          (title, "Коллекционный NFT, один экземпляр", NFT_PRICE_HIGH if name in NFT_PREMIUM else NFT_PRICE, 1,
+                           int(time.time()), img, url))
         c.execute("INSERT OR IGNORE INTO meta(k,v) VALUES('nft_seed','1')")
         c.commit()
 
