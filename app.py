@@ -770,16 +770,22 @@ async def start(m: Message, command: CommandObject):
         await notify_new({"id": u.id, "username": u.username, "first_name": u.first_name})
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL))]])
-    text = ("Привет, фермер! Добро пожаловать на ферму.\n\n"
-            "Нажимай ФАРМ раз в день: ферма и питомцы (Utya, Bunny, Scared Cat, Pepe) приносят монеты круглые сутки. Копи монеты и обменивай их на NFT.")
+    text = ("<b>Привет, фермер! Добро пожаловать на ферму.</b>\n\n"
+            "Нажимай <b>ФАРМ</b> раз в сутки, и ферма вместе с питомцами будет приносить монеты круглые сутки.\n\n"
+            "<b>Как играть</b>\n"
+            "— Фарми раз в сутки\n"
+            "— Заводи питомцев: Utya, Bunny, Scared Cat, Pepe\n"
+            "— Копи монеты\n"
+            "— Обменивай монеты на NFT\n\n"
+            "Зови друзей: за каждого, кто пришёл и нажал ФАРМ, получаешь +100 монет.")
     global WELCOME_FILE_ID
     try:
         sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "welcome.png")),
-                                    caption=text, reply_markup=kb)
+                                    caption=text, reply_markup=kb, parse_mode="HTML")
         WELCOME_FILE_ID = sent.photo[-1].file_id
     except Exception as e:
         print("welcome photo:", e)
-        await m.answer(text, reply_markup=kb)
+        await m.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
