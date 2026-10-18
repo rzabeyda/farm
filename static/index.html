@@ -526,9 +526,15 @@ function nftShow(){
   if(!SHOP.length){$('nftban').style.display='none';return}
   const it=SHOP[nftI%SHOP.length];nftI++;
   $('nftban').style.display='';
-  const im=$('nftImg');im.src=it.img;
-  $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' '+coinsW(it.price);
-  const b=$('nftban');b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');
+  // картинку меняем только когда она загрузилась; если файл не открылся, этот NFT пропускаем
+  const pre=new Image();
+  pre.onload=()=>{
+    $('nftImg').src=it.img;
+    $('nftName').textContent=it.title;$('nftPrice').innerHTML=COIN+' '+sp(it.price)+' '+coinsW(it.price);
+    const b=$('nftban');b.classList.remove('flip');void b.offsetWidth;b.classList.add('flip');
+  };
+  pre.onerror=()=>{SHOP=SHOP.filter(x=>x!==it);nftShow()};
+  pre.src=it.img;
 }
 setInterval(nftShow,3000);
 async function loadShop(){try{SHOP=(await api('shop')).items;SHOP.forEach(i=>{const p=new Image();p.src=i.img});nftShow()}catch(e){}}
@@ -563,7 +569,6 @@ function shownKey(){
   const t=k&&S.tiers.find(x=>x.key===k);
   return t&&(t.stars===0||t.owned>0)?k:S.animal;
 }
-function pickShown(k){try{localStorage.setItem('fs_show',k)}catch(e){}renderHome();closeM();toast('Показываю на ферме: '+S.tiers.find(x=>x.key===k).name)}
 function renderHome(){
   const done=S.claimed_today;
   const sk=shownKey(),img=$('sceneImg'),src=art(sk);if(img.getAttribute('src')!==src)img.setAttribute('src',src);
@@ -630,10 +635,9 @@ function mPet(k){
    +(!free&&cnt>1?'<div class="r"><span>Все вместе</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
    +'<div class="r"><span>Без захода</span><b>фармится минимум 24 часа</b></div>'
    +(S.is_admin&&np>0?'<div class="r"><span>До NFT</span><b>'+daysTxt(np/(t.rate*24))+'</b></div>':'')
-   +((free||cnt>0)&&shownKey()!==k?'<button class="go alt" id="sh-show">Показывать на ферме</button>':'')
    +(free?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">'+(cnt>0?'Купить ещё за ':'Завести за ')+t.pay+'</button>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
-  $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);const sw=$('sh-show');if(sw)sw.onclick=()=>pickShown(k);
+  $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);
   $('sheet').classList.add('on');
 }
 async function buy(k){
