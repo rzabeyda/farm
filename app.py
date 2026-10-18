@@ -786,10 +786,10 @@ async def start(m: Message, command: CommandObject):
         InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL)),
         InlineKeyboardButton(text="Чат", url="https://t.me/peeppo_chat")]])
     text = ("<b>Привет, фермер! Добро пожаловать на ферму.</b>\n\n"
-            "Нажимай <b>ФАРМ</b> раз в сутки, и ферма вместе с питомцами будет приносить монеты круглые сутки.\n\n"
+            "Нажимай <b>ФАРМ</b> и ферма вместе с питомцами будет приносить монеты круглые сутки.\n\n"
             "<b>Как играть</b>\n"
             "— Фарми раз в сутки\n"
-            "— Заводи питомцев: Utya, Bunny, Scared Cat, Pepe\n"
+            "— Покупай питомцев\n"
             "— Зови друзей и увеличивай доход\n"
             "— Копи монеты\n"
             "— Обменивай монеты на NFT")
