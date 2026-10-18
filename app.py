@@ -77,10 +77,12 @@ def init_db():
                 pass
         try:
             c.execute("ALTER TABLE users ADD COLUMN points REAL NOT NULL DEFAULT 0")
-            # прежние накопленные звёзды превращаются в очки (1 звезда = 100 очков)
-            c.execute("UPDATE users SET points=balance*100, season_points=balance*100")
         except sqlite3.OperationalError:
             pass
+        # один раз при переходе на ферму: накопленные звёзды превращаются в монеты (1 звезда = 100 монет)
+        if not c.execute("SELECT 1 FROM meta WHERE k='farm_import'").fetchone():
+            c.execute("UPDATE users SET points=balance*100, season_points=balance*100")
+            c.execute("INSERT INTO meta(k,v) VALUES('farm_import','1')")
         c.commit()
 
 
