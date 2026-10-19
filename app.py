@@ -316,16 +316,14 @@ RACE_END = datetime(2026, 10, 25, 12, tzinfo=timezone.utc).timestamp()     # р�
 
 
 def race_start():
-    """Начало гонки: момент, когда счётчик обнулили (хранится в базе, /refreset ставит заново)."""
+    """С какого момента считаем. По умолчанию с самого начала: кто уже приводил друзей, тот уже в зачёте.
+    /refreset (админ) обнуляет счёт и ставит начало на этот момент."""
     v = meta_get("race_start")
-    if v is None:
-        meta_set("race_start", str(int(time.time())))
-        return int(time.time())
-    return int(v)
+    return int(v) if v else 0
 
 
 def race_text(uid=None):
-    """Топ 5 по приглашённым с начала гонки. Считаем друзей, которые пришли по ссылке после обнуления и нажали ФАРМ."""
+    """Топ 5 по приглашённым. Считаем друзей, которые пришли по ссылке и нажали ФАРМ (все, кто привёл раньше, тоже в зачёте)."""
     start = race_start()
     end = int(RACE_END)
     finished = time.time() >= end
