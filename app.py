@@ -252,8 +252,8 @@ def state(c, uid, now=None):
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
     until = u["farm_until"] or 0
-    friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t}
-               for f in c.execute("SELECT id,username,first_name,last_claim FROM users WHERE referrer_id=? "
+    friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t, "counted": bool(f["ref_active"])}
+               for f in c.execute("SELECT id,username,first_name,last_claim,ref_active FROM users WHERE referrer_id=? "
                                   "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = sum(1 for f in friends if f["done"])
     got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, uid)).fetchone()
@@ -272,6 +272,7 @@ def state(c, uid, now=None):
         "animal": st["tier"], "animal_name": st["t"]["name"],
         "claimed_today": claimed, "streak": streak, "today": t,
         "friends": friends, "friends_today": refs_active, "refs": refs_active,
+        "refs_counted": sum(1 for f in friends if f["counted"]),     # друзья, нажавшие ФАРМ хотя бы раз: они же идут в гонку
         "pets": [{"key": k, "name": farm.TIERS[k]["name"], "count": 1 if k == "farmer" else st["pets"].get(k, 0)}
                  for k in farm.TIERS if k == "farmer" or st["pets"].get(k, 0) > 0],
         "tiers": tiers,
