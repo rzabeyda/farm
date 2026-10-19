@@ -1,4 +1,4 @@
-import asyncio, glob, hashlib, hmac, json, os, random, re, sqlite3, time
+import asyncio, glob, hashlib, hmac, html, json, os, random, re, sqlite3, time
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
-from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice,
+from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
                            MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, Response
@@ -317,7 +317,10 @@ def race_start():
     return int(v) if v else 0
 
 
-def race_text(uid=None):
+PRIZES_URL = "https://t.me/peeppo_chat/32966"      # пост с призами в чате
+
+
+def race_text(uid=None, as_html=False):
     """Топ 5 по приглашённым. Считаем друзей, которые пришли по ссылке и нажали ФАРМ (все, кто привёл раньше, тоже в зачёте)."""
     start = race_start()
     end = int(RACE_END)
@@ -332,15 +335,18 @@ def race_text(uid=None):
                              (uid, start, end)).fetchone()[0]
     lines = ['Реферальная гонка "Ферма"', "Итоги 25.10.2026 15:00 МСК" if not finished else "Конкурс завершён, итоги подведены",
              'Новый юзер нажми "ФАРМ"', ""]
-    lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
+    esc = html.escape if as_html else (lambda x: x)
+    lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else esc(_name(r))) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
     if mine is not None and not finished:
         lines += ["", f"Ты привёл: {mine}"]
+    lines += ["", f'<a href="{PRIZES_URL}">Призы</a>' if as_html else f"Призы: {PRIZES_URL}"]
     return "\n".join(lines)
 
 
 @dp.message(Command("ref"), F.chat.type == "private")      # в общем чате на /ref отвечает бот Peeppo (данные берёт у нас)
 async def cmd_ref(m: Message):
-    await m.answer(race_text(m.from_user.id if m.from_user else None))
+    await m.answer(race_text(m.from_user.id if m.from_user else None, as_html=True), parse_mode="HTML",
+                   link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 
 @dp.message(Command("refreset"))
@@ -550,7 +556,7 @@ async def api_shop_exchange(price: int = 0, x_init_data: str = Header()):
 @app.get("/api/race")
 def api_race():
     """Текст реферальной гонки без личных данных. Его забирает бот Peeppo: в общем чате /ref отвечает он, а данные берёт отсюда."""
-    return Response(race_text(), media_type="text/plain; charset=utf-8")
+    return Response(race_text(as_html=True), media_type="text/plain; charset=utf-8")
 
 
 @app.post("/api/rating")
