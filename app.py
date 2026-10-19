@@ -9,7 +9,7 @@ from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice,
                            MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -343,7 +343,7 @@ def race_text(uid=None):
     return "\n".join(lines)
 
 
-@dp.message(Command("ref"))
+@dp.message(Command("ref"), F.chat.type == "private")      # в общем чате на /ref отвечает бот Peeppo (данные берёт у нас)
 async def cmd_ref(m: Message):
     await m.answer(race_text(m.from_user.id if m.from_user else None))
 
@@ -550,6 +550,12 @@ async def api_shop_exchange(price: int = 0, x_init_data: str = Header()):
     if not ids:
         raise HTTPException(400, "coins")
     return await api_shop_buy(random.choice(ids), x_init_data)
+
+
+@app.get("/api/race")
+def api_race():
+    """Текст реферальной гонки без личных данных. Его забирает бот Peeppo: в общем чате /ref отвечает он, а данные берёт отсюда."""
+    return Response(race_text(), media_type="text/plain; charset=utf-8")
 
 
 @app.post("/api/rating")
