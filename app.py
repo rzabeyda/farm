@@ -689,7 +689,7 @@ def stats_text():
         day = lambda k: q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - k * 86400, t0 - (k - 1) * 86400)
         new_today, new_yday, new_2d = q("SELECT COUNT(*) FROM users WHERE created>=?", t0), day(1), day(2)
         owned = {k: 0 for k in STATUSES}
-        for r in c.execute("SELECT pets FROM users WHERE pets IS NOT NULL AND pets<>'{}'"):
+        for r in c.execute("SELECT pets FROM users WHERE pets IS NOT NULL AND pets<>'{}' AND id<>?", (ADMIN_ID or 0,)):
             try:
                 for k, n in json.loads(r["pets"]).items():
                     if k in owned:
