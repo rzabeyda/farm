@@ -444,6 +444,11 @@ nav button.on{box-shadow:0 6px 22px rgba(80,190,80,.45)}
         <div class="mini" id="m-friends"><small>Друзья</small><b id="p-friends">0</b></div>
         <div class="mini" id="m-rank"><small>Рейтинг</small><b id="p-rank">—</b></div>
       </div>
+      <button class="nftban peep" id="peeppo">
+        <img class="nimg" src="static/peeppo.jpg" alt="" draggable="false">
+        <div class="nt"><small>Наш другой бот</small><b>Peeppo</b><span>@Peeppobot</span></div>
+        <svg class="nar" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <div class="card fl"><div id="fl"></div></div>
       <div class="note">Монеты — внутриигровые, в Telegram Stars они не обмениваются. Их можно обменять на NFT из ограниченного набора.</div>
     </section>
@@ -733,6 +738,7 @@ $('inv').onclick=invite;
 $('help').onclick=()=>S&&mInfo();
 $('bal').closest('.bal').onclick=()=>S&&mBalance();
 $('nftban').onclick=()=>S&&mShop(true);
+$('peeppo').onclick=()=>{const u='https://t.me/Peeppobot';if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,'_blank')};
 let swX=null,swDone=false;
 function swipePet(dir){
   const keys=S.pets.map(p=>p.key),n=keys.length;if(n<2)return;
