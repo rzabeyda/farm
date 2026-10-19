@@ -339,7 +339,7 @@ def race_text(uid=None, as_html=False):
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else esc(_name(r))) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
     if mine is not None and not finished:
         lines += ["", f"Ты привёл: {mine}"]
-    lines += ["", f'<a href="{PRIZES_URL}">Призы</a>' if as_html else f"Призы: {PRIZES_URL}"]
+    lines += ["", f'<a href="{PRIZES_URL}">NFT Призы</a>' if as_html else f"NFT Призы: {PRIZES_URL}"]
     return "\n".join(lines)
 
 
