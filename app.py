@@ -710,7 +710,7 @@ def stats_text():
 @dp.message(Command("admin"))
 async def admin(m: Message):
     if admin_only(m.from_user.id):
-        await m.answer(stats_text(), reply_markup=admin_kb())
+        await m.answer(stats_text())
 
 
 def add_reward(title, price, stock, descr=""):
