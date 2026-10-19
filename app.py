@@ -727,6 +727,7 @@ def stats_text():
     with closing(db()) as c:
         q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
         total = q("SELECT COUNT(*) FROM users")
+        farmed = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
         day = lambda k: q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - k * 86400, t0 - (k - 1) * 86400)
         new_today, new_yday, new_2d = q("SELECT COUNT(*) FROM users WHERE created>=?", t0), day(1), day(2)
         owned = {k: 0 for k in STATUSES}
@@ -740,7 +741,7 @@ def stats_text():
         top = c.execute("SELECT id,username,first_name,points FROM users WHERE id<>? ORDER BY points DESC LIMIT 3",
                         (ADMIN_ID or 0,)).fetchall()
     lines = ["👑 Админ-панель Ферма", "",
-             f"Юзеры: {total}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
+             f"Юзеры: {total}", f"Фарм: {farmed}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
     lines += [f"{STATUSES[k][2]}: {n}" for k, n in owned.items()]
     lines += ["", "Топ 3 монеты:"]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['points']:,.0f}".replace(",", " ")
