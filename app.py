@@ -312,6 +312,53 @@ def meta_set(k, v):
         c.commit()
 
 
+RACE_END = datetime(2026, 10, 25, tzinfo=timezone.utc).timestamp()      # реферальная гонка: считаем до 25.10.2026 00:00 UTC, итоги 25.10
+
+
+def race_start():
+    """Начало гонки: момент, когда счётчик обнулили (хранится в базе, /refreset ставит заново)."""
+    v = meta_get("race_start")
+    if v is None:
+        meta_set("race_start", str(int(time.time())))
+        return int(time.time())
+    return int(v)
+
+
+def race_text(uid=None):
+    """Топ 5 по приглашённым с начала гонки. Считаем друзей, которые пришли по ссылке после обнуления и нажали ФАРМ."""
+    start = race_start()
+    end = int(RACE_END)
+    finished = time.time() >= end
+    with closing(db()) as c:
+        rows = c.execute("SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
+                         "WHERE f.ref_active=1 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
+                         "ORDER BY n DESC, MIN(f.created) LIMIT 5", (start, end, ADMIN_ID or 0)).fetchall()
+        mine = None
+        if uid and uid != ADMIN_ID:
+            mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND created>=? AND created<?",
+                             (uid, start, end)).fetchone()[0]
+    head = "Реферальная гонка: итоги" if finished else "Реферальная гонка"
+    lines = [head, "Кто больше всех привёл друзей в ферму. Итоги 25.10.2026." if not finished else "Конкурс завершён.", ""]
+    lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
+    if mine is not None and not finished:
+        lines += ["", f"Ты привёл: {mine}"]
+    return "\n".join(lines)
+
+
+@dp.message(Command("ref"))
+async def cmd_ref(m: Message):
+    await m.answer(race_text(m.from_user.id if m.from_user else None))
+
+
+@dp.message(Command("refreset"))
+async def cmd_refreset(m: Message):
+    """Админ: обнулить гонку (счёт идёт заново с этого момента)."""
+    if not admin_only(m.from_user.id):
+        return
+    meta_set("race_start", str(int(time.time())))
+    await m.answer("Реферальная гонка обнулена, считаем заново")
+
+
 async def run_reminders():
     t = today()
     week_ago = datetime.fromtimestamp(time.time() - 7 * 86400, timezone.utc).strftime("%Y-%m-%d")
