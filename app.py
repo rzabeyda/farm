@@ -336,7 +336,7 @@ def race_text(uid=None):
             mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND created>=? AND created<?",
                              (uid, start, end)).fetchone()[0]
     lines = ['Реферальная гонка "Ферма"', "Итоги 25.10.2026 15:00 МСК" if not finished else "Конкурс завершён, итоги подведены",
-             "Новый юзер должен нажать кнопку ФАРМ", ""]
+             'Новый юзер нажми "ФАРМ"', ""]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
     if mine is not None and not finished:
         lines += ["", f"Ты привёл: {mine}"]
