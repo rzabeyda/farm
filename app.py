@@ -8,7 +8,7 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
                            MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -343,6 +343,27 @@ def race_text(uid=None, as_html=False):
     return "\n".join(lines)
 
 
+# напоминания в общий чат: за сколько до конца гонки и что писать. Каждое уходит один раз.
+RACE_REMINDERS = [(72 * 3600, "3 дня"), (48 * 3600, "2 дня"), (24 * 3600, "1 день"), (12 * 3600, "12 часов"),
+                  (4 * 3600, "4 часа"), (3600, "1 час"), (15 * 60, "15 минут")]
+
+
+def race_due(now=None):
+    """Какое напоминание пора отправить в чат: текст или None. Отметка «отправлено» ставится сразу, пропущенные
+    более ранние напоминания отдельно не шлются (пишем только самое свежее)."""
+    now = now if now is not None else time.time()
+    if now >= RACE_END:
+        return None
+    due = [(secs, label) for secs, label in RACE_REMINDERS if now >= RACE_END - secs]
+    fresh = [(secs, label) for secs, label in due if meta_get(f"race_sent:{secs}") is None]
+    if not fresh:
+        return None
+    for secs, _ in due:
+        meta_set(f"race_sent:{secs}", "1")
+    label = min(fresh)[1]
+    return f"До конца реферальной гонки осталось {label}" + chr(10) * 2 + race_text(as_html=True)
+
+
 @dp.message(Command("ref"), F.chat.type == "private")      # в общем чате на /ref отвечает бот Peeppo (данные берёт у нас)
 async def cmd_ref(m: Message):
     await m.answer(race_text(m.from_user.id if m.from_user else None, as_html=True), parse_mode="HTML",
@@ -557,6 +578,14 @@ async def api_shop_exchange(price: int = 0, x_init_data: str = Header()):
 def api_race():
     """Текст реферальной гонки без личных данных. Его забирает бот Peeppo: в общем чате /ref отвечает он, а данные берёт отсюда."""
     return Response(race_text(as_html=True), media_type="text/plain; charset=utf-8")
+
+
+@app.post("/api/race/pop")
+def api_race_pop(request: Request):
+    """Только для бота Peeppo: забрать напоминание о гонке, если пора (его пост в общий чат). Снаружи (через nginx) закрыто."""
+    if request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for"):
+        raise HTTPException(403)
+    return Response(race_due() or "", media_type="text/plain; charset=utf-8")
 
 
 @app.post("/api/rating")
