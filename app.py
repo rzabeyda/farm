@@ -291,13 +291,8 @@ def make_backup():
 
 
 async def send_backup():
-    path = await asyncio.to_thread(make_backup)
-    if ADMIN_ID:
-        try:
-            await bot.send_document(ADMIN_ID, FSInputFile(path), caption=f"Бэкап базы {today()}")
-        except Exception as e:
-            print("backup send:", e)
-    return path
+    """Копия базы раз в сутки: тихо сохраняется на сервере (последние 14 штук), в чат ничего не присылается."""
+    return await asyncio.to_thread(make_backup)
 
 
 def meta_get(k, default=None):
