@@ -557,7 +557,7 @@ def api_rating(x_init_data: str = Header()):
     """Топ 10 игроков по заработанным монетам за всё время (потраченные тоже считаются)."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
-        top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"], "done": r["last_claim"] == today()}
+        top = [{"name": _name(r)[:15], "value": round(r["season_points"]), "me": r["id"] == u["id"], "done": r["last_claim"] == today()}
                for r in c.execute("SELECT id,username,first_name,season_points,last_claim FROM users WHERE season_points>0 "
                                   "AND id<>? ORDER BY season_points DESC, id LIMIT 10", (ADMIN_ID or 0,))]
         me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
