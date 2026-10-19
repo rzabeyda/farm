@@ -32,7 +32,7 @@ NFT_IDS = ["196787", "18775", "49993", "212312", "194519", "34351", "110883", "3
            "129754", "130195", "175066", "88462", "30452", "61032", "202183", "87790", "46133", "70214", "107748", "78965",
            "202928", "20370", "108354"]
 # NFT других коллекций: "Коллекция-номер" как в ссылке t.me/nft/..., картинка static/nft/коллекция-номер.jpg
-NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493", "SnoopDogg-347559", "LibertyFigure-232065", "LibertyFigure-255648", "LibertyFigure-101787", "LibertyFigure-237012", "LibertyFigure-189626", "LibertyFigure-87941", "LibertyFigure-68725",
+NFT_OTHER = ["LibertyFigure-261608", "LibertyFigure-67624", "SpringBasket-44493", "SnoopDogg-347559", "LibertyFigure-255648", "LibertyFigure-101787", "LibertyFigure-237012", "LibertyFigure-189626", "LibertyFigure-87941", "LibertyFigure-68725",
              "LibertyFigure-107834", "LibertyFigure-210306", "LibertyFigure-97753", "LibertyFigure-235419", "LibertyFigure-5044",
              "SnoopDogg-392692", "LibertyFigure-104039", "LibertyFigure-34553"]
 NFT_PRICE = int(os.environ.get("NFT_PRICE", 243000))   # цена одного NFT в монетах по умолчанию
