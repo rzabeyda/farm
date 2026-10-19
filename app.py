@@ -312,7 +312,7 @@ def meta_set(k, v):
         c.commit()
 
 
-RACE_END = datetime(2026, 10, 25, tzinfo=timezone.utc).timestamp()      # реферальная гонка: считаем до 25.10.2026 00:00 UTC, итоги 25.10
+RACE_END = datetime(2026, 10, 25, 12, tzinfo=timezone.utc).timestamp()     # реферальная гонка: итоги 25.10.2026 15:00 МСК (12:00 UTC), до этого момента считаем
 
 
 def race_start():
@@ -337,8 +337,8 @@ def race_text(uid=None):
         if uid and uid != ADMIN_ID:
             mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND created>=? AND created<?",
                              (uid, start, end)).fetchone()[0]
-    head = "Реферальная гонка: итоги" if finished else "Реферальная гонка"
-    lines = [head, "Кто больше всех привёл друзей в ферму. Итоги 25.10.2026." if not finished else "Конкурс завершён.", ""]
+    lines = ['Реферальная гонка "Ферма"', "Итоги 25.10.2026 15:00 МСК" if not finished else "Конкурс завершён, итоги подведены",
+             "Новый юзер должен нажать кнопку ФАРМ", ""]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
     if mine is not None and not finished:
         lines += ["", f"Ты привёл: {mine}"]
