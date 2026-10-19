@@ -687,25 +687,25 @@ def stats_text():
     with closing(db()) as c:
         q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
         total = q("SELECT COUNT(*) FROM users")
-        new_today = q("SELECT COUNT(*) FROM users WHERE created>=?", t0)
-        new_yday = q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - 86400, t0)
-        new_week = q("SELECT COUNT(*) FROM users WHERE created>=?", t0 - 6 * 86400)
-        seen_today = q("SELECT COUNT(*) FROM activity WHERE day=?", today())
-        seen_yday = q("SELECT COUNT(*) FROM activity WHERE day=?", yesterday())
-        checked = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
-        with_refs = q("SELECT COUNT(*) FROM users WHERE referrer_id IS NOT NULL")
-        pts = q("SELECT COALESCE(SUM(points),0) FROM users")
-        buys_n, buys_s = c.execute("SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payments").fetchone()
-        st = {k: q("SELECT COUNT(*) FROM payments WHERE status=?", k) for k in STATUSES}
-    return (f"Статистика Фермы\n\n"
-            f"Всего вошло в бота: {total}\n"
-            f"Новых: сегодня {new_today}, вчера {new_yday}, за 7 дней {new_week}\n"
-            f"Заходили в приложение: сегодня {seen_today}, вчера {seen_yday}\n"
-            f"Нажали ФАРМ сегодня: {checked}\n"
-            f"Пришли по приглашению: {with_refs}\n\n"
-            f"Монет у игроков всего: {pts:,.0f}\n\n"
-            f"Куплено питомцев: {buys_n} на {buys_s} звёзд\n"
-            + "  ".join(f"{STATUSES[k][2]}: {n}" for k, n in st.items()))
+        day = lambda k: q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - k * 86400, t0 - (k - 1) * 86400)
+        new_today, new_yday, new_2d = q("SELECT COUNT(*) FROM users WHERE created>=?", t0), day(1), day(2)
+        owned = {k: 0 for k in STATUSES}
+        for r in c.execute("SELECT pets FROM users WHERE pets IS NOT NULL AND pets<>'{}'"):
+            try:
+                for k, n in json.loads(r["pets"]).items():
+                    if k in owned:
+                        owned[k] += int(n)
+            except Exception:
+                pass
+        top = c.execute("SELECT id,username,first_name,points FROM users WHERE id<>? ORDER BY points DESC LIMIT 3",
+                        (ADMIN_ID or 0,)).fetchall()
+    lines = ["👑 Админ-панель Ферма", "",
+             f"Юзеры: {total}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
+    lines += [f"{STATUSES[k][2]}: {n}" for k, n in owned.items()]
+    lines += ["", "Топ 3 монеты:"]
+    lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['points']:,.0f}".replace(",", " ")
+              for i, r in enumerate(top, 1)] or ["Пока пусто"]
+    return "\n".join(lines)
 
 
 @dp.message(Command("admin"))
