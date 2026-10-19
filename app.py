@@ -661,7 +661,10 @@ async def paid_status(m: Message):
     await m.answer(f"{STATUSES[key][2]} теперь живёт на твоей ферме")
     if ADMIN_ID:
         try:
-            await bot.send_message(ADMIN_ID, f"Покупка питомца {STATUSES[key][2]}: {sp.total_amount} звёзд от id {uid}")
+            with closing(db()) as c:
+                u = c.execute("SELECT id,username,first_name FROM users WHERE id=?", (uid,)).fetchone()
+            who = (f"@{u['username']}" if u and u["username"] else _name(u) if u else f"id {uid}")
+            await bot.send_message(ADMIN_ID, f"{who} потратил {sp.total_amount} Stars: {STATUSES[key][2]}")
         except Exception:
             pass
 
