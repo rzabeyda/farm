@@ -370,10 +370,10 @@ async def run_reminders():
         InlineKeyboardButton(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))]])
     sent = blocked = 0
     for u in users:
-        text = "Нажми ФАРМ, чтобы ферма работала дальше. Копи монеты и обменивай их на NFT."
+        text = "Нажми ФАРМ, ферма ждёт."
         if u["streak"] and u["last_claim"]:
-            text += f"\nСерия {u['streak']} дн. — не потеряй её."
-        text += "\nОтключить напоминания: /stop"
+            text += f" Серия {u['streak']} дн."
+        text += "\nОтключить: /stop"
         try:
             await bot.send_message(u["id"], text, reply_markup=kb)
             sent += 1
@@ -404,9 +404,7 @@ async def scheduler():
                 await send_backup()
             if now.hour >= REMIND_HOUR and meta_get("remind_day") != today():
                 meta_set("remind_day", today())
-                sent, blocked, total = await run_reminders()
-                if ADMIN_ID:
-                    await bot.send_message(ADMIN_ID, f"Напоминания: отправлено {sent}, заблокировали бота {blocked}, из {total}")
+                await run_reminders()
         except Exception as e:
             print("scheduler:", e)
         await asyncio.sleep(60)
@@ -559,8 +557,8 @@ def api_rating(x_init_data: str = Header()):
     """Топ 10 игроков по заработанным монетам за всё время (потраченные тоже считаются)."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
-        top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"]}
-               for r in c.execute("SELECT id,username,first_name,season_points FROM users WHERE season_points>0 "
+        top = [{"name": _name(r), "value": round(r["season_points"]), "me": r["id"] == u["id"], "done": r["last_claim"] == today()}
+               for r in c.execute("SELECT id,username,first_name,season_points,last_claim FROM users WHERE season_points>0 "
                                   "AND id<>? ORDER BY season_points DESC, id LIMIT 10", (ADMIN_ID or 0,))]
         me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
         rank = None

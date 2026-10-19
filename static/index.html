@@ -693,7 +693,7 @@ async function mRating(){
   let r=null;try{r=await api('rating')}catch(e){toast('Не удалось загрузить рейтинг');return}
   $('sh-t').textContent='Топ 10 игроков';
   $('sh-b').innerHTML='<p>Кто заработал больше всего монет за всё время.</p>'
-   +(r.top.length?'<div class="tl">'+r.top.map((x,i)=>'<div class="tr'+(x.me?' me':'')+'"><i class="r'+(i<3?i+1:0)+'">'+(i+1)+'</i><span>'+escH(x.name)+(x.me?' (ты)':'')+'</span><b>'+sp(x.value)+'</b></div>').join('')+'</div>':'<p>Пока никого. Стань первым!</p>')
+   +(r.top.length?'<div class="tl">'+r.top.map((x,i)=>'<div class="tr'+(x.me?' me':'')+'"><i class="r'+(i<3?i+1:0)+'">'+(i+1)+'</i><span>'+escH(x.name)+(x.me?' (ты)':'')+'</span><div class="mk '+(x.done?'y':'n')+'" style="width:22px;height:22px">'+(x.done?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>')+'</div><b>'+sp(x.value)+'</b></div>').join('')+'</div>':'<p>Пока никого. Стань первым!</p>')
    +(r.rank&&r.rank>10?'<p style="margin:10px 0 0">Твоё место: '+r.rank+' ('+sp(r.my)+' монет)</p>':'')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;$('sheet').classList.add('on');
