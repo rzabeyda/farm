@@ -127,11 +127,10 @@ def init_db():
                 if r["status"] in farm.PAID:
                     c.execute("UPDATE users SET pets=? WHERE id=? AND pets='{}'", (json.dumps({r["status"]: 1}), r["id"]))
             c.execute("INSERT INTO meta(k,v) VALUES('pets5','1')")
-        # однократно: друзья, нажавшие ФАРМ быстрее чем за 5 секунд после первого входа (скрипт), больше не засчитываются
-        if not c.execute("SELECT 1 FROM meta WHERE k='refhuman1'").fetchone():
-            c.execute("UPDATE users SET ref_active=0 WHERE referrer_id IS NOT NULL AND claim_days=1 AND res_ts IS NOT NULL "
-                      "AND res_ts-created<5")
-            c.execute("INSERT INTO meta(k,v) VALUES('refhuman1','1')")
+        # однократно: вернуть в зачёт всех друзей, которые нажали ФАРМ (проверку скорости убрали, считаем по первому ФАРМ)
+        if not c.execute("SELECT 1 FROM meta WHERE k='refrestore1'").fetchone():
+            c.execute("UPDATE users SET ref_active=1 WHERE referrer_id IS NOT NULL AND claim_days>=1")
+            c.execute("INSERT INTO meta(k,v) VALUES('refrestore1','1')")
         # NFT для обмена: каждая ссылка добавляется один раз. Повторы в списке, а также NFT, которые уже есть в базе
         # (проданные или снятые тоже), заново не добавляются.
         for name in dict.fromkeys([f"PoolFloat-{n}" for n in NFT_IDS] + NFT_OTHER + NFT_TOP):
@@ -493,18 +492,11 @@ async def api_claim(x_init_data: str = Header()):
                   (t, streak, farm.farm_until_for(), time.time(), u["id"]))
         inv = row["referrer_id"]
         if inv:
-            # проверка на живого человека: если друг нажал ФАРМ слишком быстро после первого входа (бот/скрипт), он не
-            # засчитывается в гонке и не приносит монет. Если он вернётся и нажмёт ФАРМ в другой день, засчитается.
-            if row["ref_active"]:
-                active = True
-            elif first:
-                active = (time.time() - row["created"]) >= farm.REF_MIN_SECONDS
-            else:
-                active = True
-            if active and not row["ref_active"]:
+            # друг нажал ФАРМ: он сразу засчитывается везде (гонка, галочка в профиле, монеты пригласившему)
+            if first:
                 c.execute("UPDATE users SET ref_active=1 WHERE id=?", (u["id"],))
             got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, inv)).fetchone()
-            if active and (got["n"] if got else 0) < farm.REF_CAP:
+            if (got["n"] if got else 0) < farm.REF_CAP:
                 # друг нажал ФАРМ: приглашающему +REF_BONUS (в первый раз сразу, затем в каждый день, когда друг играет)
                 c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?",
                           (farm.REF_BONUS, farm.REF_BONUS, inv))
