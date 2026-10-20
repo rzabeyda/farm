@@ -740,9 +740,12 @@ def stats_text():
                 pass
         top = c.execute("SELECT id,username,first_name,points FROM users WHERE id<>? ORDER BY points DESC LIMIT 3",
                         (ADMIN_ID or 0,)).fetchall()
+        waiting = c.execute("SELECT username,pet FROM pending_grants ORDER BY rowid").fetchall()
     lines = ["👑 Админ-панель Ферма", "",
              f"Юзеры: {total}", f"Фарм: {farmed}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
     lines += [f"{STATUSES[k][2]}: {n}" for k, n in owned.items()]
+    if waiting:     # подарки, выданные игрокам, которые ещё не заходили в бота: выдадутся при первом входе
+        lines += ["", "Ждут первого входа:"] + [f"@{w['username']} — {STATUSES[w['pet']][2]}" for w in waiting]
     lines += ["", "Топ 3 монеты:"]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['points']:,.0f}".replace(",", " ")
               for i, r in enumerate(top, 1)] or ["Пока пусто"]
