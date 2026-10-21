@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager, closing
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
 
-from aiogram import Bot, Dispatcher, F
+from aiogram import BaseMiddleware, Bot, Dispatcher, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
 from aiogram.types import (CallbackQuery, ChatMemberUpdated, FSInputFile, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
@@ -98,7 +98,8 @@ def init_db():
                     "ALTER TABLE users ADD COLUMN farm_until REAL",
                     "ALTER TABLE users ADD COLUMN pets TEXT NOT NULL DEFAULT '{}'",
                     "ALTER TABLE users ADD COLUMN in_chat INTEGER NOT NULL DEFAULT 0",
-                    "ALTER TABLE users ADD COLUMN chat_checked INTEGER NOT NULL DEFAULT 0"):
+                    "ALTER TABLE users ADD COLUMN chat_checked INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0"):
             try:
                 c.execute(ddl)
             except sqlite3.OperationalError:
@@ -245,6 +246,8 @@ def verify_init_data(init_data: str) -> dict:
 
 def user_from(init_data):
     d = verify_init_data(init_data)
+    if d["user"]["id"] in BANNED:
+        raise HTTPException(403, "banned")
     return d["user"], parse_ref(d.get("start_param"))
 
 
@@ -262,7 +265,7 @@ def state(c, uid, now=None):
     until = u["farm_until"] or 0
     friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t, "counted": bool(f["ref_active"] and f["in_chat"]),
                 "active": bool(f["ref_active"]), "in_chat": bool(f["in_chat"])}
-               for f in c.execute("SELECT id,username,first_name,last_claim,ref_active,in_chat FROM users WHERE referrer_id=? "
+               for f in c.execute("SELECT id,username,first_name,last_claim,ref_active,in_chat FROM users WHERE referrer_id=? AND banned=0 "
                                   "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = sum(1 for f in friends if f["done"])
     got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, uid)).fetchone()
@@ -341,11 +344,11 @@ def race_text(uid=None, as_html=False):
     finished = time.time() >= end
     with closing(db()) as c:
         rows = c.execute("SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
-                         "WHERE f.ref_active=1 AND f.in_chat=1 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
+                         "WHERE f.ref_active=1 AND f.in_chat=1 AND f.banned=0 AND u.banned=0 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
                          "ORDER BY n DESC, MIN(f.created) LIMIT 7", (start, end, ADMIN_ID or 0)).fetchall()
         mine = None
         if uid and uid != ADMIN_ID:
-            mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND in_chat=1 AND created>=? AND created<?",
+            mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND in_chat=1 AND banned=0 AND created>=? AND created<?",
                              (uid, start, end)).fetchone()[0]
     lines = ['Реферальная гонка "Ферма"', "Итоги 25.10.2026 15:00 МСК" if not finished else "Конкурс завершён, итоги подведены",
              'Новый юзер нажми "ФАРМ" и зайди в чат @peeppo_chat', ""]
@@ -399,7 +402,7 @@ async def run_reminders():
     week_ago = datetime.fromtimestamp(time.time() - 7 * 86400, timezone.utc).strftime("%Y-%m-%d")
     with closing(db()) as c:
         users = c.execute(
-            "SELECT id,streak,last_claim FROM users WHERE remind_off=0 AND (last_claim IS NULL OR last_claim<>?) "
+            "SELECT id,streak,last_claim FROM users WHERE remind_off=0 AND banned=0 AND (last_claim IS NULL OR last_claim<>?) "
             "AND (last_remind IS NULL OR last_remind<>?) "
             "AND ((last_claim IS NULL AND created>=?) OR last_claim>=?)",
             (t, t, int(time.time()) - 3 * 86400, week_ago)).fetchall()
@@ -523,7 +526,7 @@ async def giveaway_draw(gid):
 async def giveaway_broadcast(gid, when_text):
     """Каждому игроку Фермы: о розыгрыше в чате и что надо зайти в чат. Тем, кто отключил сообщения, не пишем."""
     with closing(db()) as c:
-        ids = [r["id"] for r in c.execute("SELECT id FROM users WHERE remind_off=0 AND id<>?", (ADMIN_ID or 0,))]
+        ids = [r["id"] for r in c.execute("SELECT id FROM users WHERE remind_off=0 AND banned=0 AND id<>?", (ADMIN_ID or 0,))]
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="В чат", url="https://t.me/peeppo_chat")]])
     text = ("Розыгрыш питомцев!" + chr(10) + chr(10) +
             "Разыгрываем 4 питомца: Utya, Capybara, Scared Cat и Pepe. Зайди в наш чат и нажми «Участвовать» под постом о розыгрыше. "
@@ -756,7 +759,7 @@ async def chat_check(uid):
 async def chat_sync(limit=None, stale=0):
     """Проверка в чате у рефералов, которые нажали ФАРМ: сначала те, кого давно не проверяли."""
     with closing(db()) as c:
-        rows = c.execute("SELECT id FROM users WHERE referrer_id IS NOT NULL AND ref_active=1 AND chat_checked<? "
+        rows = c.execute("SELECT id FROM users WHERE referrer_id IS NOT NULL AND ref_active=1 AND banned=0 AND chat_checked<? "
                          "ORDER BY chat_checked LIMIT ?", (int(time.time()) - stale, limit or 100000)).fetchall()
     for r in rows:
         set_in_chat(r["id"], await chat_check(r["id"]))
@@ -770,6 +773,58 @@ async def on_chat_member(upd: ChatMemberUpdated):
     if (upd.chat.username or "").lower() != GIVEAWAY_CHAT.lstrip("@").lower():
         return
     set_in_chat(upd.new_chat_member.user.id, upd.new_chat_member.status in CHAT_OK)
+
+
+# ---------------- блокировка игрока ----------------
+BANNED = set()          # кэш id заблокированных (чтобы не ходить в базу на каждое обновление)
+
+
+def load_banned():
+    with closing(db()) as c:
+        BANNED.clear()
+        BANNED.update(r["id"] for r in c.execute("SELECT id FROM users WHERE banned=1"))
+
+
+class BanMiddleware(BaseMiddleware):
+    """Заблокированный игрок: бот не отвечает ему ни на что (сообщения, кнопки, события)."""
+    async def __call__(self, handler, event, data):
+        u = data.get("event_from_user")
+        if u and u.id in BANNED:
+            return None
+        return await handler(event, data)
+
+
+dp.update.outer_middleware(BanMiddleware())
+
+
+async def ban_user(uid):
+    """Заблокировать игрока везде в Ферме: игра, бот, гонка, рейтинг, розыгрыши и аирдропы. В общем чате его банят с удалением сообщений.
+    Данные остаются в базе (скрытые), чтобы можно было разобраться или вернуть."""
+    with closing(db()) as c:
+        c.execute("UPDATE users SET banned=1 WHERE id=?", (uid,))
+        c.commit()
+    BANNED.add(uid)
+    try:
+        await bot.ban_chat_member(GIVEAWAY_CHAT, uid, revoke_messages=True)
+        return True
+    except Exception as e:
+        print("ban in chat:", e)
+        return False
+
+
+@dp.message(Command("ban"), F.chat.type == "private")
+async def cmd_ban(m: Message, command: CommandObject):
+    """/ban @username — админ: заблокировать игрока везде."""
+    if not admin_only(m.from_user.id):
+        return
+    name = (command.args or "").strip().lstrip("@").lower()
+    with closing(db()) as c:
+        row = c.execute("SELECT id,username FROM users WHERE lower(username)=?", (name,)).fetchone() if name else None
+    if not row:
+        await m.answer("Использование: /ban @username (игрок должен быть в базе)")
+        return
+    chat_ok = await ban_user(row["id"])
+    await m.answer(f"@{row['username']} заблокирован. " + ("В чате забанен, сообщения удалены." if chat_ok else "В чате забанить не получилось: у бота нет права банить."))
 
 
 async def scheduler():
@@ -798,6 +853,7 @@ async def scheduler():
 @asynccontextmanager
 async def lifespan(_):
     init_db()
+    load_banned()
     try:
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL)))
@@ -965,12 +1021,12 @@ def api_rating(x_init_data: str = Header()):
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
         top = [{"name": _name(r)[:15], "value": round(r["season_points"]), "me": r["id"] == u["id"], "done": r["last_claim"] == today()}
-               for r in c.execute("SELECT id,username,first_name,season_points,last_claim FROM users WHERE season_points>0 "
+               for r in c.execute("SELECT id,username,first_name,season_points,last_claim FROM users WHERE season_points>0 AND banned=0 "
                                   "AND id<>? ORDER BY season_points DESC, id LIMIT 10", (ADMIN_ID or 0,))]
         me = c.execute("SELECT season_points FROM users WHERE id=?", (u["id"],)).fetchone()
         rank = None
         if me and me["season_points"] > 0 and u["id"] != ADMIN_ID:     # админ в рейтинге не участвует
-            rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>? AND id<>?",
+            rank = c.execute("SELECT COUNT(*)+1 FROM users WHERE season_points>? AND banned=0 AND id<>?",
                              (me["season_points"], ADMIN_ID or 0)).fetchone()[0]
     return {"top": top, "rank": rank, "my": round(me["season_points"]) if me else 0}
 
@@ -1097,12 +1153,12 @@ def stats_text():
     t0 = int(datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     with closing(db()) as c:
         q = lambda sql, *a: c.execute(sql, a).fetchone()[0]
-        total = q("SELECT COUNT(*) FROM users")
-        farmed = q("SELECT COUNT(*) FROM users WHERE last_claim=?", today())
-        day = lambda k: q("SELECT COUNT(*) FROM users WHERE created>=? AND created<?", t0 - k * 86400, t0 - (k - 1) * 86400)
-        new_today, new_yday, new_2d = q("SELECT COUNT(*) FROM users WHERE created>=?", t0), day(1), day(2)
+        total = q("SELECT COUNT(*) FROM users WHERE banned=0")
+        farmed = q("SELECT COUNT(*) FROM users WHERE banned=0 AND last_claim=?", today())
+        day = lambda k: q("SELECT COUNT(*) FROM users WHERE banned=0 AND created>=? AND created<?", t0 - k * 86400, t0 - (k - 1) * 86400)
+        new_today, new_yday, new_2d = q("SELECT COUNT(*) FROM users WHERE banned=0 AND created>=?", t0), day(1), day(2)
         owned = {k: 0 for k in STATUSES}
-        for r in c.execute("SELECT pets FROM users WHERE pets IS NOT NULL AND pets<>'{}' AND id<>?", (ADMIN_ID or 0,)):
+        for r in c.execute("SELECT pets FROM users WHERE pets IS NOT NULL AND pets<>'{}' AND banned=0 AND id<>?", (ADMIN_ID or 0,)):
             try:
                 for k, n in json.loads(r["pets"]).items():
                     if k in owned:
