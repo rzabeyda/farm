@@ -723,8 +723,8 @@ def admin_only(uid):
 
 
 def admin_reply_kb():
-    """Постоянные кнопки внизу чата админа: /admin и /ref."""
-    return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/admin"), KeyboardButton(text="/ref")]],
+    """Постоянные кнопки внизу чата админа: Admin и Ref (нажатие работает как команды /admin и /ref)."""
+    return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Admin"), KeyboardButton(text="Ref")]],
                                resize_keyboard=True, is_persistent=True)
 
 
@@ -766,6 +766,14 @@ def stats_text():
 async def admin(m: Message):
     if admin_only(m.from_user.id):
         await m.answer(stats_text(), reply_markup=admin_reply_kb())
+
+
+@dp.message(F.text.in_({"Admin", "Ref"}), F.chat.type == "private")
+async def admin_buttons(m: Message):
+    """Кнопки админа без слэша: «Admin» открывает панель, «Ref» показывает гонку. Остальным игрокам не отвечаем."""
+    if not (m.from_user and admin_only(m.from_user.id)):
+        return
+    await (admin(m) if m.text == "Admin" else cmd_ref(m))
 
 
 def add_reward(title, price, stock, descr=""):
