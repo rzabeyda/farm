@@ -636,7 +636,7 @@ function mPet(k){
   $('sh-t').textContent=t.name+(!free&&cnt>0?' ×'+cnt:'');
   $('sh-b').innerHTML='<div class="petbig"><img src="'+art(k)+'" alt=""></div>'
    +'<div class="r"><span>'+(free?'Доход':'Доход одного')+'</span><b>+'+sp(t.rate*24)+' '+coinsW(t.rate*24)+' в сутки</b></div>'
-   +(!free&&cnt>1?'<div class="r"><span>Все вместе</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
+   +(!free&&cnt>1?'<div class="r"><span>Доход всего ×'+cnt+'</span><b>+'+sp(cnt*t.rate*24)+' '+coinsW(cnt*t.rate*24)+' в сутки</b></div>':'')
    +(free?'':'<button class="go" id="sh-go"><img src="static/star.png" alt="" style="width:18px;height:18px">'+(cnt>0?'Купить ещё за ':'Завести за ')+t.pay+'</button><button class="go alt" id="sh-coin">'+(cnt>0?'Купить ещё за ':'Завести за ')+sp(t.coin_price)+' '+coinsW(t.coin_price)+'</button><div class="warn" id="sh-warn"></div>')
    +'<button class="go ghost" id="sh-x">Закрыть</button>';
   $('sh-x').onclick=closeM;const g=$('sh-go');if(g)g.onclick=()=>buy(k);const gc=$('sh-coin');if(gc)gc.onclick=()=>buyCoins(k,t);
