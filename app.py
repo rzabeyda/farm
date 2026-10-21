@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
-from aiogram.types import (CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
+from aiogram.types import (CallbackQuery, FSInputFile, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
                            MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, Response
@@ -326,14 +326,14 @@ PRIZES_URL = "https://t.me/peeppo_chat/32966"      # пост с призами 
 
 
 def race_text(uid=None, as_html=False):
-    """Топ 5 по приглашённым. Считаем друзей, которые пришли по ссылке и нажали ФАРМ (все, кто привёл раньше, тоже в зачёте)."""
+    """Топ 7 по приглашённым. Считаем друзей, которые пришли по ссылке и нажали ФАРМ (все, кто привёл раньше, тоже в зачёте)."""
     start = race_start()
     end = int(RACE_END)
     finished = time.time() >= end
     with closing(db()) as c:
         rows = c.execute("SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
                          "WHERE f.ref_active=1 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
-                         "ORDER BY n DESC, MIN(f.created) LIMIT 5", (start, end, ADMIN_ID or 0)).fetchall()
+                         "ORDER BY n DESC, MIN(f.created) LIMIT 7", (start, end, ADMIN_ID or 0)).fetchall()
         mine = None
         if uid and uid != ADMIN_ID:
             mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND created>=? AND created<?",
@@ -372,7 +372,8 @@ def race_due(now=None):
 @dp.message(Command("ref"), F.chat.type == "private")      # в общем чате на /ref отвечает бот Peeppo (данные берёт у нас)
 async def cmd_ref(m: Message):
     await m.answer(race_text(m.from_user.id if m.from_user else None, as_html=True), parse_mode="HTML",
-                   link_preview_options=LinkPreviewOptions(is_disabled=True))
+                   link_preview_options=LinkPreviewOptions(is_disabled=True),
+                   reply_markup=admin_reply_kb() if m.from_user and admin_only(m.from_user.id) else None)
 
 
 @dp.message(Command("refreset"))
@@ -445,6 +446,12 @@ async def lifespan(_):
             menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=WEBAPP_URL)))
     except Exception as e:
         print("menu button:", e)
+    if ADMIN_ID and meta_get("admin_kb_v1") is None:        # один раз: включить кнопки /admin и /ref в чате админа
+        try:
+            await bot.send_message(ADMIN_ID, "Кнопки внизу: /admin и /ref", reply_markup=admin_reply_kb())
+            meta_set("admin_kb_v1", "1")
+        except Exception as e:
+            print("admin keyboard:", e)
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
     sched = asyncio.create_task(scheduler())
     yield
@@ -715,6 +722,12 @@ def admin_only(uid):
     return bool(ADMIN_ID) and uid == ADMIN_ID
 
 
+def admin_reply_kb():
+    """Постоянные кнопки внизу чата админа: /admin и /ref."""
+    return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/admin"), KeyboardButton(text="/ref")]],
+                               resize_keyboard=True, is_persistent=True)
+
+
 def admin_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Статистика", callback_data="adm:stats"),
@@ -740,12 +753,9 @@ def stats_text():
                 pass
         top = c.execute("SELECT id,username,first_name,points FROM users WHERE id<>? ORDER BY points DESC LIMIT 3",
                         (ADMIN_ID or 0,)).fetchall()
-        waiting = c.execute("SELECT username,pet FROM pending_grants ORDER BY rowid").fetchall()
     lines = ["👑 Админ-панель Ферма", "",
              f"Юзеры: {total}", f"Фарм: {farmed}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
     lines += [f"{STATUSES[k][2]}: {n}" for k, n in owned.items()]
-    if waiting:     # подарки, выданные игрокам, которые ещё не заходили в бота: выдадутся при первом входе
-        lines += ["", "Ждут первого входа:"] + [f"@{w['username']} — {STATUSES[w['pet']][2]}" for w in waiting]
     lines += ["", "Топ 3 монеты:"]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['points']:,.0f}".replace(",", " ")
               for i, r in enumerate(top, 1)] or ["Пока пусто"]
@@ -755,7 +765,7 @@ def stats_text():
 @dp.message(Command("admin"))
 async def admin(m: Message):
     if admin_only(m.from_user.id):
-        await m.answer(stats_text())
+        await m.answer(stats_text(), reply_markup=admin_reply_kb())
 
 
 def add_reward(title, price, stock, descr=""):
