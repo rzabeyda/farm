@@ -67,6 +67,12 @@ def init_db():
           amount INTEGER NOT NULL, created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
         CREATE TABLE IF NOT EXISTS activity(day TEXT NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(day, user_id));
+        CREATE TABLE IF NOT EXISTS airdrops(id INTEGER PRIMARY KEY AUTOINCREMENT, amount INTEGER NOT NULL, status TEXT NOT NULL,
+          msg_id INTEGER, created INTEGER NOT NULL, claimed_by INTEGER, claimed_at INTEGER);
+        CREATE TABLE IF NOT EXISTS giveaways(id INTEGER PRIMARY KEY AUTOINCREMENT, draw_at INTEGER NOT NULL, status TEXT NOT NULL,
+          msg_id INTEGER, created INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS giveaway_entries(giveaway_id INTEGER NOT NULL, user_id INTEGER NOT NULL, PRIMARY KEY(giveaway_id, user_id));
+        CREATE TABLE IF NOT EXISTS giveaway_winners(giveaway_id INTEGER NOT NULL, user_id INTEGER NOT NULL, pet TEXT NOT NULL, PRIMARY KEY(giveaway_id, user_id));
         CREATE TABLE IF NOT EXISTS pending_grants(username TEXT PRIMARY KEY, pet TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS ref_credit(day TEXT NOT NULL, inviter INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day, inviter));
         CREATE TABLE IF NOT EXISTS rewards(
@@ -423,6 +429,308 @@ async def run_reminders():
     return sent, blocked, len(users)
 
 
+# ---------------- розыгрыш питомцев в общем чате ----------------
+GIVEAWAY_CHAT = "@peeppo_chat"
+GIVEAWAY_PETS = ["gold", "platinum", "diamond", "obsidian"]     # по одному каждого, разным победителям
+MSK = timezone(timedelta(hours=3))
+GIVEAWAY_ORDER = ["obsidian", "diamond", "platinum", "gold"]    # в итогах сверху самый дорогой
+
+
+def giveaway_open():
+    with closing(db()) as c:
+        return c.execute("SELECT * FROM giveaways WHERE status='open' ORDER BY id DESC LIMIT 1").fetchone()
+
+
+def giveaway_join(gid, uid):
+    """Регистрация участника. Возвращает: ok, again, closed, no_farm или admin."""
+    with closing(db()) as c:
+        g = c.execute("SELECT status FROM giveaways WHERE id=?", (gid,)).fetchone()
+        if not g or g["status"] != "open":
+            return "closed"
+        if admin_only(uid):
+            return "admin"
+        if not c.execute("SELECT 1 FROM users WHERE id=?", (uid,)).fetchone():
+            return "no_farm"
+        cur = c.execute("INSERT OR IGNORE INTO giveaway_entries(giveaway_id,user_id) VALUES(?,?)", (gid, uid))
+        c.commit()
+        return "ok" if cur.rowcount else "again"
+
+
+async def giveaway_member_ok(uid):
+    """Состоит ли игрок в чате. Если Telegram не ответил, не исключаем."""
+    try:
+        m = await bot.get_chat_member(GIVEAWAY_CHAT, uid)
+        return m.status not in ("left", "kicked")
+    except Exception:
+        return True
+
+
+def _who(u):
+    return f"@{u['username']}" if u["username"] else (u["first_name"] or f"id {u['id']}")
+
+
+async def giveaway_draw(gid):
+    """Розыгрыш: случайно выбираем до 4 разных победителей и случайно раздаём им 4 питомцев по одному."""
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        g = c.execute("SELECT * FROM giveaways WHERE id=? AND status='open'", (gid,)).fetchone()
+        if not g:
+            c.rollback()
+            return None
+        c.execute("UPDATE giveaways SET status='drawing' WHERE id=?", (gid,))     # отметка до розыгрыша: дважды не разыграем
+        c.commit()
+        ids = [r["user_id"] for r in c.execute("SELECT user_id FROM giveaway_entries WHERE giveaway_id=?", (gid,))]
+    members = [u for u in ids if await giveaway_member_ok(u)]
+    random.shuffle(members)
+    pets = GIVEAWAY_PETS[:]
+    random.shuffle(pets)
+    winners = list(zip(pets, members[:len(pets)]))
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        for pet, uid in winners:
+            give_pet(c, uid, pet)
+            c.execute("INSERT OR REPLACE INTO giveaway_winners(giveaway_id,user_id,pet) VALUES(?,?,?)", (gid, uid, pet))
+        c.execute("UPDATE giveaways SET status='done' WHERE id=?", (gid,))
+        c.commit()
+        info = {pet: c.execute("SELECT id,username,first_name FROM users WHERE id=?", (uid,)).fetchone() for pet, uid in winners}
+    if winners:
+        lines = ["Итоги розыгрыша питомцев", f"Участвовало: {len(members)}", ""]
+        lines += [f"{STATUSES[p][2]} — {_who(info[p])}" for p in GIVEAWAY_ORDER if p in info]
+        lines += ["", "Питомцы уже на фермах победителей."]
+    else:
+        lines = ["Итоги розыгрыша питомцев", "", "Никто не участвовал, питомцы остаются у нас."]
+    try:
+        await bot.send_message(GIVEAWAY_CHAT, chr(10).join(lines))
+    except Exception as e:
+        print("giveaway result post:", e)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Фармить", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    for pet, uid in winners:
+        try:
+            await bot.send_message(uid, f"Ты выиграл питомца {STATUSES[pet][2]}! Он уже на твоей ферме.", reply_markup=kb)
+        except Exception:
+            pass
+    if ADMIN_ID:
+        try:
+            await bot.send_message(ADMIN_ID, "Розыгрыш завершён: " + (", ".join(f"{STATUSES[p][2]} — {_who(info[p])}" for p in GIVEAWAY_ORDER if p in info) or "никто не участвовал"))
+        except Exception:
+            pass
+    return winners
+
+
+async def giveaway_broadcast(gid, when_text):
+    """Каждому игроку Фермы: о розыгрыше в чате и что надо зайти в чат. Тем, кто отключил сообщения, не пишем."""
+    with closing(db()) as c:
+        ids = [r["id"] for r in c.execute("SELECT id FROM users WHERE remind_off=0 AND id<>?", (ADMIN_ID or 0,))]
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="В чат", url="https://t.me/peeppo_chat")]])
+    text = ("Розыгрыш питомцев!" + chr(10) + chr(10) +
+            "Разыгрываем 4 питомца: Utya, Capybara, Scared Cat и Pepe. Зайди в наш чат и нажми «Участвовать» под постом о розыгрыше. "
+            f"Итоги {when_text}.")
+    sent = 0
+    for uid in ids:
+        try:
+            await bot.send_message(uid, text, reply_markup=kb)
+            sent += 1
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(e.retry_after + 1)
+        except TelegramForbiddenError:
+            with closing(db()) as c:
+                c.execute("UPDATE users SET remind_off=1 WHERE id=?", (uid,))
+                c.commit()
+        except Exception:
+            pass
+        await asyncio.sleep(0.05)
+    if ADMIN_ID:
+        try:
+            await bot.send_message(ADMIN_ID, f"Рассылка о розыгрыше: доставлено {sent} из {len(ids)}")
+        except Exception:
+            pass
+    return sent
+
+
+@dp.message(Command("pet"), F.chat.type == "private")
+async def cmd_pet(m: Message, command: CommandObject):
+    """/pet [ЧЧ:ММ] — запустить розыгрыш 4 питомцев в чате. По умолчанию итоги сегодня в 20:00 МСК."""
+    if not admin_only(m.from_user.id):
+        return
+    if giveaway_open():
+        await m.answer("Розыгрыш уже идёт. Дождись итогов.")
+        return
+    arg = (command.args or "20:00").strip()
+    try:
+        hh, mm = arg.split(":")
+        now = datetime.now(MSK)
+        draw = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+    except Exception:
+        await m.answer("Использование: /pet или /pet 21:30 (время МСК)")
+        return
+    if draw <= now:
+        await m.answer("Это время уже прошло. Укажи позже, например /pet 22:00")
+        return
+    try:
+        me = await bot.get_me()
+        mem = await bot.get_chat_member(GIVEAWAY_CHAT, me.id)
+        if mem.status not in ("administrator", "creator", "member"):
+            raise RuntimeError(mem.status)
+    except Exception:
+        await m.answer("Бота нет в чате. Добавь @farm6bot в @peeppo_chat админом с правом писать, потом снова /pet")
+        return
+    when_text = f"{draw:%d.%m} в {draw:%H:%M} МСК"
+    with closing(db()) as c:
+        cur = c.execute("INSERT INTO giveaways(draw_at,status,created) VALUES(?,?,?)", (int(draw.timestamp()), "open", int(time.time())))
+        gid = cur.lastrowid
+        c.commit()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Участвовать", callback_data=f"gv:join:{gid}")]])
+    text = ("Розыгрыш питомцев!" + chr(10) + chr(10) +
+            "Разыгрываем 4 питомца: Utya, Capybara, Scared Cat и Pepe. Каждого получит отдельный победитель, питомец сразу появится на ферме." + chr(10) + chr(10) +
+            "Нажми «Участвовать». Нужно быть в этом чате и запускать @farm6bot." + chr(10) +
+            f"Итоги {when_text}.")
+    try:
+        sent = await bot.send_message(GIVEAWAY_CHAT, text, reply_markup=kb)
+    except Exception as e:
+        with closing(db()) as c:
+            c.execute("DELETE FROM giveaways WHERE id=?", (gid,))
+            c.commit()
+        await m.answer(f"Не получилось написать в чат: {e}")
+        return
+    with closing(db()) as c:
+        c.execute("UPDATE giveaways SET msg_id=? WHERE id=?", (getattr(sent, "message_id", None), gid))
+        c.commit()
+    await m.answer(f"Розыгрыш запущен, итоги {when_text}. Идёт рассылка игрокам.")
+    asyncio.create_task(giveaway_broadcast(gid, when_text))
+
+
+@dp.callback_query(F.data.startswith("gv:join:"))
+async def cb_giveaway_join(q: CallbackQuery):
+    gid = int(q.data.split(":")[2])
+    r = giveaway_join(gid, q.from_user.id)
+    answers = {"ok": ("Ты участвуешь! Итоги будут в чате.", False),
+               "again": ("Ты уже участвуешь.", False),
+               "closed": ("Розыгрыш уже завершён.", True),
+               "no_farm": ("Сначала запусти @farm6bot, потом нажми «Участвовать» ещё раз.", True),
+               "admin": ("Ты организатор, в розыгрыше не участвуешь.", True)}
+    text, alert = answers[r]
+    await q.answer(text, show_alert=alert)
+
+
+# ---------------- аирдроп монет в общий чат ----------------
+AIRDROP_WINDOWS = [(9, 12), (12, 16), (16, 20), (20, 23)]     # часы МСК: в каждом окне одно падение в случайную минуту (4 в сутки)
+AIRDROP_MIN, AIRDROP_MAX = 100, 250
+AIRDROP_TTL = 30 * 60                                          # не забрали за 30 минут: аирдроп сгорает
+
+
+def airdrop_plan(day=None):
+    """Времена четырёх аирдропов на сутки по Москве. Выбираются случайно один раз и хранятся в базе."""
+    now = datetime.now(MSK)
+    day = day or now.strftime("%Y-%m-%d")
+    v = meta_get(f"airdrop_plan:{day}")
+    if v:
+        return day, json.loads(v)
+    y, mo, d = (int(x) for x in day.split("-"))
+    plan = []
+    for a, b in AIRDROP_WINDOWS:
+        start = datetime(y, mo, d, a, tzinfo=MSK)
+        plan.append(int(start.timestamp()) + random.randint(0, (b - a) * 3600 - 1))
+    meta_set(f"airdrop_plan:{day}", json.dumps(plan))
+    return day, plan
+
+
+def airdrop_due(now=None):
+    """Пора ли кидать аирдроп сейчас. Каждое запланированное время срабатывает один раз; опоздавшее больше чем на 30 минут пропускается."""
+    now = now if now is not None else time.time()
+    day, plan = airdrop_plan(datetime.fromtimestamp(now, MSK).strftime("%Y-%m-%d"))
+    for i, ts in enumerate(plan):
+        if ts <= now < ts + AIRDROP_TTL and meta_get(f"airdrop_done:{day}:{i}") is None:
+            meta_set(f"airdrop_done:{day}:{i}", "1")
+            return True
+    return False
+
+
+async def airdrop_post():
+    """Пост в чат с кнопкой «Забрать»: монеты достанутся тому, кто нажмёт первым."""
+    amount = random.randint(AIRDROP_MIN, AIRDROP_MAX)
+    with closing(db()) as c:
+        cur = c.execute("INSERT INTO airdrops(amount,status,created) VALUES(?,?,?)", (amount, "open", int(time.time())))
+        aid = cur.lastrowid
+        c.commit()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Забрать", callback_data=f"ad:claim:{aid}")]])
+    try:
+        sent = await bot.send_message(GIVEAWAY_CHAT, f"Аирдроп монет для Фермы: {amount}" + chr(10) + "Кто первый нажмёт «Забрать», тот и получит.", reply_markup=kb)
+    except Exception as e:
+        print("airdrop post:", e)
+        with closing(db()) as c:
+            c.execute("DELETE FROM airdrops WHERE id=?", (aid,))
+            c.commit()
+        return None
+    with closing(db()) as c:
+        c.execute("UPDATE airdrops SET msg_id=? WHERE id=?", (getattr(sent, "message_id", None), aid))
+        c.commit()
+    return aid, amount
+
+
+def airdrop_claim(aid, uid):
+    """Кто первый, тот и забрал. Возвращает (статус, сумма): ok, late, no_farm или admin."""
+    with closing(db()) as c:
+        c.execute("BEGIN IMMEDIATE")
+        a = c.execute("SELECT * FROM airdrops WHERE id=?", (aid,)).fetchone()
+        if not a or a["status"] != "open":
+            c.rollback()
+            return "late", 0
+        if admin_only(uid):
+            c.rollback()
+            return "admin", 0
+        if not c.execute("SELECT 1 FROM users WHERE id=?", (uid,)).fetchone():
+            c.rollback()
+            return "no_farm", 0
+        c.execute("UPDATE airdrops SET status='claimed', claimed_by=?, claimed_at=? WHERE id=?", (uid, int(time.time()), aid))
+        c.execute("UPDATE users SET points=points+?, season_points=season_points+? WHERE id=?", (a["amount"], a["amount"], uid))
+        c.commit()
+        return "ok", a["amount"]
+
+
+async def airdrop_expire():
+    """Аирдропы, которые никто не забрал за 30 минут, закрываем."""
+    with closing(db()) as c:
+        old = c.execute("SELECT id,msg_id,amount FROM airdrops WHERE status='open' AND created<?", (int(time.time()) - AIRDROP_TTL,)).fetchall()
+        for a in old:
+            c.execute("UPDATE airdrops SET status='expired' WHERE id=?", (a["id"],))
+        c.commit()
+    for a in old:
+        if a["msg_id"]:
+            try:
+                await bot.edit_message_text(f"Аирдроп {a['amount']} монет никто не забрал", chat_id=GIVEAWAY_CHAT, message_id=a["msg_id"])
+            except Exception:
+                pass
+
+
+@dp.callback_query(F.data.startswith("ad:claim:"))
+async def cb_airdrop_claim(q: CallbackQuery):
+    aid = int(q.data.split(":")[2])
+    status, amount = airdrop_claim(aid, q.from_user.id)
+    if status == "ok":
+        with closing(db()) as c:
+            u = c.execute("SELECT id,username,first_name FROM users WHERE id=?", (q.from_user.id,)).fetchone()
+        await q.answer(f"Твои {amount} монет!")
+        try:
+            await q.message.edit_text(f"Аирдроп {amount} монет забрал {_who(u)}")
+        except Exception:
+            pass
+    elif status == "late":
+        await q.answer("Опоздал, аирдроп уже забрали", show_alert=True)
+    elif status == "no_farm":
+        await q.answer("Сначала запусти @farm6bot, потом жми «Забрать» (аирдроп ещё свободен)", show_alert=True)
+    else:
+        await q.answer("Ты организатор, себе не забираешь", show_alert=True)
+
+
+@dp.message(Command("drop"), F.chat.type == "private")
+async def cmd_drop(m: Message):
+    """Админ: кинуть аирдроп в чат прямо сейчас (проверка). Обычные падают сами 4 раза в сутки."""
+    if not admin_only(m.from_user.id):
+        return
+    r = await airdrop_post()
+    await m.answer(f"Аирдроп отправлен в чат: {r[1]} монет" if r else "Не получилось написать в чат. Бот @farm6bot должен быть админом чата.")
+
+
 async def scheduler():
     while True:
         try:
@@ -433,6 +741,13 @@ async def scheduler():
             if now.hour >= REMIND_HOUR and meta_get("remind_day") != today():
                 meta_set("remind_day", today())
                 await run_reminders()
+            with closing(db()) as c:
+                due = [r["id"] for r in c.execute("SELECT id FROM giveaways WHERE status='open' AND draw_at<=?", (int(time.time()),))]
+            for gid in due:
+                await giveaway_draw(gid)
+            if airdrop_due():
+                await airdrop_post()
+            await airdrop_expire()
         except Exception as e:
             print("scheduler:", e)
         await asyncio.sleep(60)
