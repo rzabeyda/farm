@@ -805,7 +805,7 @@ async def ban_user(uid):
         c.commit()
     BANNED.add(uid)
     try:
-        await bot.ban_chat_member(GIVEAWAY_CHAT, uid, revoke_messages=True)
+        await bot.ban_chat_member(GIVEAWAY_CHAT, uid, revoke_messages=True, until_date=int(time.time()) + 10 * 365 * 86400)   # бессрочный бан Telegram держит только с явной датой
         return True
     except Exception as e:
         print("ban in chat:", e)
