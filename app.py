@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart, CommandObject
-from aiogram.types import (CallbackQuery, FSInputFile, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
+from aiogram.types import (CallbackQuery, ChatMemberUpdated, FSInputFile, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, LinkPreviewOptions,
                            MenuButtonWebApp, Message, PreCheckoutQuery, WebAppInfo)
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, Response
@@ -96,7 +96,9 @@ def init_db():
                     "ALTER TABLE users ADD COLUMN res REAL",
                     "ALTER TABLE users ADD COLUMN res_ts REAL",
                     "ALTER TABLE users ADD COLUMN farm_until REAL",
-                    "ALTER TABLE users ADD COLUMN pets TEXT NOT NULL DEFAULT '{}'"):
+                    "ALTER TABLE users ADD COLUMN pets TEXT NOT NULL DEFAULT '{}'",
+                    "ALTER TABLE users ADD COLUMN in_chat INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN chat_checked INTEGER NOT NULL DEFAULT 0"):
             try:
                 c.execute(ddl)
             except sqlite3.OperationalError:
@@ -258,8 +260,9 @@ def state(c, uid, now=None):
     streak = u["streak"] if u["last_claim"] in (t, y) else 0
     claimed = u["last_claim"] == t
     until = u["farm_until"] or 0
-    friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t, "counted": bool(f["ref_active"])}
-               for f in c.execute("SELECT id,username,first_name,last_claim,ref_active FROM users WHERE referrer_id=? "
+    friends = [{"name": _name(f), "username": f["username"], "done": f["last_claim"] == t, "counted": bool(f["ref_active"] and f["in_chat"]),
+                "active": bool(f["ref_active"]), "in_chat": bool(f["in_chat"])}
+               for f in c.execute("SELECT id,username,first_name,last_claim,ref_active,in_chat FROM users WHERE referrer_id=? "
                                   "ORDER BY (last_claim=?) DESC, created", (uid, t))]
     refs_active = sum(1 for f in friends if f["done"])
     got = c.execute("SELECT n FROM ref_credit WHERE day=? AND inviter=?", (t, uid)).fetchone()
@@ -338,14 +341,14 @@ def race_text(uid=None, as_html=False):
     finished = time.time() >= end
     with closing(db()) as c:
         rows = c.execute("SELECT u.id,u.username,u.first_name,COUNT(*) n FROM users f JOIN users u ON u.id=f.referrer_id "
-                         "WHERE f.ref_active=1 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
+                         "WHERE f.ref_active=1 AND f.in_chat=1 AND f.created>=? AND f.created<? AND u.id<>? GROUP BY u.id "
                          "ORDER BY n DESC, MIN(f.created) LIMIT 7", (start, end, ADMIN_ID or 0)).fetchall()
         mine = None
         if uid and uid != ADMIN_ID:
-            mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND created>=? AND created<?",
+            mine = c.execute("SELECT COUNT(*) FROM users WHERE referrer_id=? AND ref_active=1 AND in_chat=1 AND created>=? AND created<?",
                              (uid, start, end)).fetchone()[0]
     lines = ['Реферальная гонка "Ферма"', "Итоги 25.10.2026 15:00 МСК" if not finished else "Конкурс завершён, итоги подведены",
-             'Новый юзер нажми "ФАРМ"', ""]
+             'Новый юзер нажми "ФАРМ" и зайди в чат @peeppo_chat', ""]
     esc = html.escape if as_html else (lambda x: x)
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else esc(_name(r))) + f" — {r['n']}" for i, r in enumerate(rows, 1)] or ["Пока никого. Приводи друзей!"]
     if mine is not None and not finished:
@@ -731,6 +734,44 @@ async def cmd_drop(m: Message):
     await m.answer(f"Аирдроп отправлен в чат: {r[1]} монет" if r else "Не получилось написать в чат. Бот @farm6bot должен быть админом чата.")
 
 
+# ---------------- членство реферала в общем чате (условие гонки) ----------------
+CHAT_OK = ("member", "administrator", "creator")
+
+
+def set_in_chat(uid, flag):
+    with closing(db()) as c:
+        c.execute("UPDATE users SET in_chat=?, chat_checked=? WHERE id=?", (1 if flag else 0, int(time.time()), uid))
+        c.commit()
+
+
+async def chat_check(uid):
+    """Состоит ли игрок в общем чате. Если Telegram его не знает или не ответил, считаем, что не состоит (перепроверим позже)."""
+    try:
+        m = await bot.get_chat_member(GIVEAWAY_CHAT, uid)
+        return m.status in CHAT_OK
+    except Exception:
+        return False
+
+
+async def chat_sync(limit=None, stale=0):
+    """Проверка в чате у рефералов, которые нажали ФАРМ: сначала те, кого давно не проверяли."""
+    with closing(db()) as c:
+        rows = c.execute("SELECT id FROM users WHERE referrer_id IS NOT NULL AND ref_active=1 AND chat_checked<? "
+                         "ORDER BY chat_checked LIMIT ?", (int(time.time()) - stale, limit or 100000)).fetchall()
+    for r in rows:
+        set_in_chat(r["id"], await chat_check(r["id"]))
+        await asyncio.sleep(0.04)
+    return len(rows)
+
+
+@dp.chat_member()
+async def on_chat_member(upd: ChatMemberUpdated):
+    """Telegram присылает это сразу, когда кто-то входит в чат или выходит из него."""
+    if (upd.chat.username or "").lower() != GIVEAWAY_CHAT.lstrip("@").lower():
+        return
+    set_in_chat(upd.new_chat_member.user.id, upd.new_chat_member.status in CHAT_OK)
+
+
 async def scheduler():
     while True:
         try:
@@ -748,6 +789,7 @@ async def scheduler():
             if airdrop_due():
                 await airdrop_post()
             await airdrop_expire()
+            await chat_sync(limit=30, stale=900)
         except Exception as e:
             print("scheduler:", e)
         await asyncio.sleep(60)
@@ -767,6 +809,7 @@ async def lifespan(_):
             meta_set("admin_kb_v1", "1")
         except Exception as e:
             print("admin keyboard:", e)
+    asyncio.create_task(chat_sync())                    # при запуске сверяем всех рефералов с чатом
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
     sched = asyncio.create_task(scheduler())
     yield
