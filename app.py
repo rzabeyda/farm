@@ -754,7 +754,7 @@ def stats_text():
         top = c.execute("SELECT id,username,first_name,points FROM users WHERE id<>? ORDER BY points DESC LIMIT 3",
                         (ADMIN_ID or 0,)).fetchall()
     lines = ["👑 Админ-панель Ферма", "",
-             f"Юзеры: {total}", f"Фарм: {farmed}", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
+             f"Юзеры: {total}", f"Фарм: {farmed}", "", f"Сегодня: {new_today}", f"Вчера: {new_yday}", f"Позавчера: {new_2d}", ""]
     lines += [f"{STATUSES[k][2]}: {n}" for k, n in owned.items()]
     lines += ["", "Топ 3 монеты:"]
     lines += [f"{i}. " + (f"@{r['username']}" if r["username"] else _name(r)) + f" — {r['points']:,.0f}".replace(",", " ")
