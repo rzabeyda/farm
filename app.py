@@ -202,6 +202,15 @@ def touch(c, uid):
     c.execute("INSERT OR IGNORE INTO activity(day,user_id) VALUES(?,?)", (today(), uid))
 
 
+ADMIN_NOTICES = False      # сообщения админу без его команды (новый юзер, оплата Stars, итоги розыгрыша, рассылка) выключены
+
+
+async def tell_admin(text, **kw):
+    """Единственное место, откуда бот пишет админу сам по себе. Ответы на команды админа сюда не относятся."""
+    if ADMIN_NOTICES and ADMIN_ID:
+        await bot.send_message(ADMIN_ID, text, **kw)
+
+
 async def notify_new(u):
     """Админу коротко: «Новый юзер @username», а если его позвал друг: «@друг привёл @username»."""
     if not ADMIN_ID or u["id"] == ADMIN_ID:
@@ -216,7 +225,7 @@ async def notify_new(u):
     else:
         text = f"Новый юзер {who}"
     try:
-        await bot.send_message(ADMIN_ID, text)
+        await tell_admin(text)
     except Exception as e:
         print("notify new:", e)
 
@@ -517,7 +526,7 @@ async def giveaway_draw(gid):
             pass
     if ADMIN_ID:
         try:
-            await bot.send_message(ADMIN_ID, "Розыгрыш завершён: " + (", ".join(f"{STATUSES[p][2]} — {_who(info[p])}" for p in GIVEAWAY_ORDER if p in info) or "никто не участвовал"))
+            await tell_admin("Розыгрыш завершён: " + (", ".join(f"{STATUSES[p][2]} — {_who(info[p])}" for p in GIVEAWAY_ORDER if p in info) or "никто не участвовал"))
         except Exception:
             pass
     return winners
@@ -547,7 +556,7 @@ async def giveaway_broadcast(gid, when_text):
         await asyncio.sleep(0.05)
     if ADMIN_ID:
         try:
-            await bot.send_message(ADMIN_ID, f"Рассылка о розыгрыше: доставлено {sent} из {len(ids)}")
+            await tell_admin(f"Рассылка о розыгрыше: доставлено {sent} из {len(ids)}")
         except Exception:
             pass
     return sent
@@ -861,7 +870,7 @@ async def lifespan(_):
         print("menu button:", e)
     if ADMIN_ID and meta_get("admin_kb_v1") is None:        # один раз: включить кнопки /admin и /ref в чате админа
         try:
-            await bot.send_message(ADMIN_ID, "Кнопки внизу: /admin и /ref", reply_markup=admin_reply_kb())
+            await tell_admin("Кнопки внизу: /admin и /ref", reply_markup=admin_reply_kb())
             meta_set("admin_kb_v1", "1")
         except Exception as e:
             print("admin keyboard:", e)
@@ -986,7 +995,7 @@ async def api_shop_buy(rid: int, x_init_data: str = Header()):
     if ADMIN_ID:
         try:
             kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=f"Выдано #{oid}", callback_data=f"ord:{oid}")]])
-            await bot.send_message(ADMIN_ID, f"@{u['username']} заказал «{rw['title']}» за {rw['price']} монет\n#{oid}", reply_markup=kb)
+            await tell_admin(f"@{u['username']} заказал «{rw['title']}» за {rw['price']} монет\n#{oid}", reply_markup=kb)
         except Exception as e:
             print("order notify:", e)
     return s
@@ -1136,7 +1145,7 @@ async def paid_status(m: Message):
             with closing(db()) as c:
                 u = c.execute("SELECT id,username,first_name FROM users WHERE id=?", (uid,)).fetchone()
             who = (f"@{u['username']}" if u and u["username"] else _name(u) if u else f"id {uid}")
-            await bot.send_message(ADMIN_ID, f"{who} потратил {sp.total_amount} Stars: {STATUSES[key][2]}")
+            await tell_admin(f"{who} потратил {sp.total_amount} Stars: {STATUSES[key][2]}")
         except Exception:
             pass
 
