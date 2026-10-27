@@ -931,8 +931,17 @@ async def api_claim(x_init_data: str = Header()):
     return s
 
 
+NFT_EXCHANGE = False       # обмен монет на NFT выключен (из игры убран); True вернёт магазин, данные NFT в базе остались
+
+
+def _nft_exchange_guard():
+    if not NFT_EXCHANGE:
+        raise HTTPException(410, "exchange disabled")
+
+
 @app.post("/api/shop")
 def api_shop(x_init_data: str = Header()):
+    _nft_exchange_guard()
     """Магазин наград: коллекционные призы за монеты в ограниченном количестве."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
@@ -947,6 +956,7 @@ def api_shop(x_init_data: str = Header()):
 
 @app.post("/api/shop/buy/{rid}")
 async def api_shop_buy(rid: int, x_init_data: str = Header()):
+    _nft_exchange_guard()
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
         c.execute("BEGIN IMMEDIATE")
@@ -984,6 +994,7 @@ async def api_shop_buy(rid: int, x_init_data: str = Header()):
 
 @app.post("/api/shop/exchange")
 async def api_shop_exchange(price: int = 0, x_init_data: str = Header()):
+    _nft_exchange_guard()
     """Обмен монет на случайный NFT выбранной цены (price). Выбирает сервер, игрок конкретный NFT выбрать не может."""
     u, _ = user_from(x_init_data)
     with closing(db()) as c:
@@ -1404,8 +1415,7 @@ async def start(m: Message, command: CommandObject):
             "— Фарми раз в сутки\n"
             "— Покупай питомцев\n"
             "— Зови друзей и увеличивай доход\n"
-            "— Копи монеты\n"
-            "— Обменивай монеты на NFT")
+            "— Копи монеты")
     global WELCOME_FILE_ID
     try:
         sent = await m.answer_photo(WELCOME_FILE_ID or FSInputFile(os.path.join(HERE, "static", "welcome.png")),
