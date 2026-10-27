@@ -629,6 +629,7 @@ async def cb_giveaway_join(q: CallbackQuery):
 
 # ---------------- аирдроп монет в общий чат ----------------
 AIRDROP_WINDOWS = [(9, 12), (12, 16), (16, 20), (20, 23)]     # часы МСК: в каждом окне одно падение в случайную минуту (4 в сутки)
+AIRDROPS_ENABLED = False                                        # аирдропы в чат остановлены (ни по расписанию, ни командой /drop)
 AIRDROP_MIN, AIRDROP_MAX = 100, 250
 AIRDROP_TTL = 30 * 60                                          # не забрали за 30 минут: аирдроп сгорает
 
@@ -702,6 +703,21 @@ def airdrop_claim(aid, uid):
         return "ok", a["amount"]
 
 
+async def airdrop_close_all():
+    """Закрыть все открытые аирдропы сразу (кнопка «Забрать» перестаёт работать, пост помечается закрытым)."""
+    with closing(db()) as c:
+        old = c.execute("SELECT id,msg_id,amount FROM airdrops WHERE status='open'").fetchall()
+        c.execute("UPDATE airdrops SET status='expired' WHERE status='open'")
+        c.commit()
+    for a in old:
+        if a["msg_id"]:
+            try:
+                await bot.edit_message_text(f"Аирдроп {a['amount']} монет закрыт", chat_id=GIVEAWAY_CHAT, message_id=a["msg_id"])
+            except Exception:
+                pass
+    return len(old)
+
+
 async def airdrop_expire():
     """Аирдропы, которые никто не забрал за 30 минут, закрываем."""
     with closing(db()) as c:
@@ -741,6 +757,9 @@ async def cb_airdrop_claim(q: CallbackQuery):
 async def cmd_drop(m: Message):
     """Админ: кинуть аирдроп в чат прямо сейчас (проверка). Обычные падают сами 4 раза в сутки."""
     if not admin_only(m.from_user.id):
+        return
+    if not AIRDROPS_ENABLED:
+        await m.answer("Аирдропы выключены.")
         return
     r = await airdrop_post()
     await m.answer(f"Аирдроп отправлен в чат: {r[1]} монет" if r else "Не получилось написать в чат. Бот @farm6bot должен быть админом чата.")
@@ -850,7 +869,7 @@ async def scheduler():
                 due = [r["id"] for r in c.execute("SELECT id FROM giveaways WHERE status='open' AND draw_at<=?", (int(time.time()),))]
             for gid in due:
                 await giveaway_draw(gid)
-            if airdrop_due():
+            if AIRDROPS_ENABLED and airdrop_due():
                 await airdrop_post()
             await airdrop_expire()
             await chat_sync(limit=30, stale=900)
@@ -874,6 +893,8 @@ async def lifespan(_):
             meta_set("admin_kb_v1", "1")
         except Exception as e:
             print("admin keyboard:", e)
+    if not AIRDROPS_ENABLED:
+        asyncio.create_task(airdrop_close_all())
     asyncio.create_task(chat_sync())                    # при запуске сверяем всех рефералов с чатом
     task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
     sched = asyncio.create_task(scheduler())
